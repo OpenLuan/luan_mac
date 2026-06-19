@@ -1,0 +1,359 @@
+name: LuanMac
+options:
+  bundleIdPrefix: com.luanmac
+  developmentLanguage: en
+  createIntermediateGroups: true
+  # Pin the Xcode project format to Xcode 15 (objectVersion 70). Newer
+  # XcodeGen defaults to format 77 (Xcode 16), which CI's Xcode 15 cannot
+  # open ("future Xcode project file format").
+  objectVersion: "70"
+  deploymentTarget:
+    macOS: "14.0"
+
+settings:
+  base:
+    ENABLE_BITCODE: NO
+    CLANG_WARN_STRICT_PROTOTYPES: NO
+    CLANG_WARN_DOCUMENTATION_COMMENTS: NO
+    CLANG_ENABLE_MODULES: NO
+    CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES: YES
+    GCC_PREFIX_HEADER: LuanMac/LuanMac.pch
+    GCC_PRECOMPILE_PREFIX_HEADER: YES
+    SWIFT_ENABLE_EXPLICIT_MODULES: NO
+    CLANG_ENABLE_EXPLICIT_MODULES: NO
+    HEADER_SEARCH_PATHS: >
+      $(inherited)
+      $(SRCROOT)/lua-apple/luafan/src
+      $(SRCROOT)/lua-apple
+      $(SRCROOT)/lua-apple/platform/libevent-config/macos
+      $(SRCROOT)/lua-apple/libevent/include
+      $(SRCROOT)/lua-apple/third_party/brotli/c/include
+      $(SRCROOT)/lua-apple/lua53
+      $(SRCROOT)/lua-apple/utlua
+      $(SRCROOT)/lua-apple/utlua/core
+      # lua-openssl Lua 5.3 compat header (private.h/auxiliar.c include it;
+      # compat-5.3.c is inlined by the header, so the dir is header-only)
+      $(SRCROOT)/lua-apple/third_party/lua-openssl/deps/lua-compat/c-api
+      # lua-openssl auxiliary class helper (deps submodule of lua-openssl)
+      $(SRCROOT)/lua-apple/third_party/lua-openssl/deps/auxiliar
+      $(SRCROOT)/lua-apple/third_party/lua-openssl/src
+      # Generated OpenSSL 3.x public headers (build output of
+      # scripts/build_xcframeworks.sh). The libcrypto/libssl xcframeworks
+      # are intentionally created WITHOUT headers: both targets link them and
+      # would race on $(BUILT_PRODUCTS_DIR)/include/openssl/* otherwise.
+      $(SRCROOT)/Frameworks/openssl-headers/include
+    OTHER_CFLAGS: >
+      $(inherited)
+      -DLUA_USE_MACOSX
+      -DLUA_COMPAT_5_1
+      -DLUA_COMPAT_5_2
+      -DLUA_COMPAT_FLOATSTRING
+      -DLUA_FLOORN2I=1
+      -DHAVE_CONFIG_H
+      -DLUA_USER_H="<luauser.h>"
+      -DOPENSSL_NO_MD2
+      -DMACOS_CLASSIC
+      -DFAN_HAS_OPENSSL
+      -DSQLITE_ENABLE_MEMORY_MANAGEMENT
+      -DSQLITE_DEFAULT_LOCKING_MODE=1
+      -DTUNNEL_IN_MAIN_TARGET
+      -DPAL_NO_TUNNEL
+
+# Exclude noise / non-macOS sources under lua-apple when scanning the tree.
+# sqlite3.c / openssl / lua53 / libevent are re-added as explicit source entries
+# (often with -w). Linux/Android PAL stay out of the macOS app target.
+luaAppleExcludes: &luaAppleExcludes
+  - "luafan/src/mariadb"
+  - "luafan/src/luamariadb.c"
+  # Global lua_lock: lua-apple/luauser.c (LUA_USER_H). fan_lua_lock.c is the
+  # portable equivalent for Linux/Alpine only; compiling it here would
+  # duplicate LockMainState/... symbols.
+  - "luafan/src/fan_lua_lock.c"
+  - "luafan/docs"
+  - "luafan/examples"
+  - "luafan/tests"
+  - "luafan/modules"
+  - "luafan/ios"
+  - "luafan/openwrt"
+  - "luafan/.circleci"
+  - "luafan/.github"
+  - "luafan/_config.yml"
+  - "luafan/*.md"
+  - "luafan/*.rockspec"
+  - "luafan/Makefile*"
+  - "luafan/configure*"
+  - "luafan/CMakeLists.txt"
+  - "utlua/sqlite3.c"
+  - "utlua/brotli/common"
+  - "utlua/brotli/dec"
+  - "utlua/brotli/enc"
+  - "utlua/brotli/fuzz"
+  - "utlua/brotli/include"
+  - "utlua/brotli/tools"
+  - "lua53/**"
+  # lmd5.c is #include'd by ldigest.c — do not compile as its own TU.
+  - "utlua/algorithm/lmd5.c"
+  - "utlua/**/*.txt"
+  - "third_party/brotli"
+  - "third_party/lua-openssl"
+  # OpenSSL source submodule must never enter the Xcode targets: its
+  # include/openssl/*.h (and *.h.in) headers are built into the
+  # Frameworks/lib{crypto,ssl}.xcframework (see scripts/build_xcframeworks.sh).
+  # Including them here produces "Multiple commands produce
+  # $(BUILT_PRODUCTS_DIR)/include/openssl/..." for both targets (they share
+  # BUILT_PRODUCTS_DIR) and duplicates the framework headers.
+  - "third_party/openssl"
+  - "libevent"
+  # Docs / license / patch artifacts must not enter the Xcode target.
+  - "patches"
+  - "THIRD_PARTY.md"
+  - "**/*.diff"
+  - "**/*.sh"
+  - "**/*.md"
+  - "**/*.txt"
+  - "**/*.yml"
+  - "**/Dockerfile*"
+  - "**/LICENSE*"
+  - "**/Makefile*"
+  - "**/*.rockspec"
+
+libeventExcludes: &libeventExcludes
+  - "include"
+  # Official upstream tree also ships tests / samples / build scaffolding
+  # (test/, sample/, cmake/, m4/, WIN32-Code/, ...) — keep them out of the
+  # macOS target when libevent is added as a submodule.
+  - "test"
+  - "test-export"
+  - "sample"
+  - "cmake"
+  - "m4"
+  - "WIN32-Code"
+  - "extra"
+  - "compat"
+  - ".github"
+  - "buffer_iocp.c"
+  - "bufferevent_async.c"
+  - "event_iocp.c"
+  - "evthread_win32.c"
+  - "win32select.c"
+  - "arc4random.c"
+  - "devpoll.c"
+  - "epoll_sub.c"
+  - "evport.c"
+  # Root-level upstream scaffolding (pkg-config templates, man pages,
+  # scripts, docs, build files) must not be copied into the app bundle.
+  - "**/*.md"
+  - "**/*.txt"
+  - "**/*.sh"
+  - "**/*.py"
+  - "**/*.in"
+  - "**/*.cmake"
+  - "**/*.m4"
+  - "**/*.am"
+  - "**/*.3"
+  - "**/*.sed"
+  - "**/Makefile*"
+  - "**/CMakeLists.txt"
+  - "**/configure.ac"
+  - "**/autogen.sh"
+  - "**/ChangeLog*"
+  - "**/Doxyfile"
+  - "**/LICENSE*"
+  - "**/.clang-format"
+  - "**/.mailmap"
+  - "**/.gitignore"
+  - "**/Vagrantfile"
+
+# Official github.com/lua/lua tree also ships the standalone interpreter,
+# internal test harness, and build scaffolding — keep them out of targets.
+lua53Excludes: &lua53Excludes
+  - "lua.c"
+  - "ltests.c"
+  - "ltests.h"
+  - "makefile"
+  - "Makefile"
+  - "bugs"
+  - "**/*.md"
+  - "**/*.txt"
+  - "**/*.diff"
+  - "**/LICENSE*"
+  - "**/.gitignore"
+  - "**/.git"
+
+targets:
+  LuanMac:
+    type: application
+    platform: macOS
+    deploymentTarget: "14.0"
+    sources:
+      - path: LuanMac
+        excludes:
+          - "Info.plist"
+          - "LuanMac.entitlements"
+          - "LuanMac-Bridging-Header.h"
+      # Luan-owned native file scanner; keep it in the app target as well as the CLI target.
+      - path: luan/native/file_scan.c
+        compilerFlags: -w
+      - path: runtime
+        type: folder
+        buildPhase: resources
+        optional: true
+      - path: lua-apple
+        excludes: *luaAppleExcludes
+      # GCM native binding is sourced from the webase submodule.
+      - path: webase/gcm
+        compilerFlags: -w
+      - path: lua-apple/utlua/sqlite3.c
+        compilerFlags: -w
+      # lua-openssl: compile directly from the submodule (no patched copy).
+      # src/ is the upstream C sources; deps/auxiliar is the lua-openssl
+      # dependency submodule (lua-auxiliar) that src/*.c #include.
+      - path: lua-apple/third_party/lua-openssl/src
+        excludes:
+          # ec.c #includes these; never compile them as separate TUs
+          - "ec_util.c"
+          - "group.c"
+          - "point.c"
+        compilerFlags: -w
+      - path: lua-apple/third_party/lua-openssl/deps/auxiliar
+        excludes:
+          - "**/*.md"
+          - "**/*.gitignore"
+        compilerFlags: -w
+      - path: lua-apple/third_party/brotli/c
+        excludes:
+          - "tools"
+          - "fuzz"
+          - "common/*.bin"
+          - "common/*.br"
+        compilerFlags: -w
+      - path: lua-apple/libevent
+        excludes: *libeventExcludes
+        compilerFlags: -w
+      - path: lua-apple/lua53
+        excludes: *lua53Excludes
+        compilerFlags: -w
+    dependencies:
+      - sdk: libresolv.tbd
+      - sdk: libz.tbd
+      - sdk: libiconv.tbd
+      - sdk: libldap.tbd
+      - framework: Frameworks/libcrypto.xcframework
+        embed: false
+      - framework: Frameworks/libssl.xcframework
+        embed: false
+      - framework: Frameworks/libcurl-impersonate.xcframework
+        embed: true
+        codeSignOnCopy: true
+      - target: luan
+        embed: false
+    postBuildScripts:
+      - name: Copy and sign luan CLI
+        script: |
+          if [ -f "${BUILT_PRODUCTS_DIR}/luan" ]; then
+            cp "${BUILT_PRODUCTS_DIR}/luan" "${BUILT_PRODUCTS_DIR}/${CONTENTS_FOLDER_PATH}/MacOS/luan"
+            codesign --force --sign - "${BUILT_PRODUCTS_DIR}/${CONTENTS_FOLDER_PATH}/MacOS/luan"
+          fi
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.luanmac.LuanMac
+        INFOPLIST_FILE: LuanMac/Info.plist
+        CODE_SIGN_ENTITLEMENTS: LuanMac/LuanMac.entitlements
+        SWIFT_OBJC_BRIDGING_HEADER: LuanMac/LuanMac-Bridging-Header.h
+        CODE_SIGN_STYLE: Automatic
+        DEVELOPMENT_TEAM: ""
+        CODE_SIGNING_ALLOWED: YES
+        CODE_SIGNING_REQUIRED: YES
+        ENABLE_HARDENED_RUNTIME: YES
+
+  luan:
+    type: tool
+    platform: macOS
+    deploymentTarget: "14.0"
+    sources:
+      - path: LuanCLI
+      # Luan-owned native file scanner; do not add this to luafan/fan.so.
+      - path: luan/native/file_scan.c
+        compilerFlags: -w
+      - path: LuanMac/LuaBridge.m
+        compilerFlags: -w
+      - path: LuanMac/LuaBridge.h
+      - path: lua-apple
+        excludes: *luaAppleExcludes
+      # GCM native binding is sourced from the webase submodule.
+      - path: webase/gcm
+        compilerFlags: -w
+      - path: lua-apple/utlua/sqlite3.c
+        compilerFlags: -w
+      # lua-openssl: compile directly from the submodule (no patched copy).
+      # src/ is the upstream C sources; deps/auxiliar is the lua-openssl
+      # dependency submodule (lua-auxiliar) that src/*.c #include.
+      - path: lua-apple/third_party/lua-openssl/src
+        excludes:
+          # ec.c #includes these; never compile them as separate TUs
+          - "ec_util.c"
+          - "group.c"
+          - "point.c"
+        compilerFlags: -w
+      - path: lua-apple/third_party/lua-openssl/deps/auxiliar
+        excludes:
+          - "**/*.md"
+          - "**/*.gitignore"
+        compilerFlags: -w
+      - path: lua-apple/third_party/brotli/c
+        excludes:
+          - "tools"
+          - "fuzz"
+          - "common/*.bin"
+          - "common/*.br"
+        compilerFlags: -w
+      - path: lua-apple/libevent
+        excludes: *libeventExcludes
+        compilerFlags: -w
+      - path: lua-apple/lua53
+        excludes: *lua53Excludes
+        compilerFlags: -w
+    dependencies:
+      - sdk: libresolv.tbd
+      - sdk: libz.tbd
+      - sdk: libiconv.tbd
+      - sdk: libldap.tbd
+      - framework: Frameworks/libcrypto.xcframework
+        embed: false
+      - framework: Frameworks/libssl.xcframework
+        embed: false
+      - framework: Frameworks/libcurl-impersonate.xcframework
+        embed: false
+    # NOTE: no postBuildScript to copy libcurl-impersonate.4.dylib next to luan.
+    # Both targets share ${BUILT_PRODUCTS_DIR} as output dir, and LuanMac
+    # already embeds the dylib there (via Embed Frameworks phase). If luan
+    # also copied it, xcodebuild reports "Multiple commands produce
+    # Debug/libcurl-impersonate.4.dylib" and the LuanMac scheme fails.
+    # Consequence: the standalone build product ${BUILT_PRODUCTS_DIR}/luan
+    # cannot be launched directly (dyld: Library not loaded). Run luan from
+    # inside the app bundle instead — LuanMac's "Copy and sign luan CLI"
+    # postBuildScript copies it to Contents/MacOS/luan, where rpath
+    # @executable_path/../Frameworks resolves to the app bundle's embedded
+    # libcurl-impersonate.4.dylib.
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.luanmac.luan
+        SWIFT_OBJC_BRIDGING_HEADER: LuanMac/LuanMac-Bridging-Header.h
+        CODE_SIGN_STYLE: Automatic
+        DEVELOPMENT_TEAM: ""
+        CODE_SIGNING_ALLOWED: YES
+        CODE_SIGNING_REQUIRED: NO
+        LD_RUNPATH_SEARCH_PATHS: >
+          $(inherited)
+          @executable_path
+          @executable_path/../Frameworks
+
+schemes:
+  LuanMac:
+    build:
+      targets:
+        LuanMac: all
+  luan:
+    build:
+      targets:
+        luan: all

@@ -1,0 +1,30 @@
+#ifndef LuanMac_pch
+#define LuanMac_pch
+
+#ifdef __OBJC__
+#import <Foundation/Foundation.h>
+
+// 提供 lua_State 等类型 (utlua/core/*.h 引用 lua_State 但未自带 include).
+#include <lua.h>
+#include <lauxlib.h>
+#include <lualib.h>
+
+// utlua/core 只保留一个薄封装 LuaState (LuaBridge.m 显式 include);
+// 不再全局导入 OC 桥接头. utlua.h 含 OpenSSL include, 不放 pch 里
+// (会和系统 Security 模块冲突), 只在显式需要的源文件里 include.
+
+#define DEBUG_EOS_LOG(x,...) NSLog(@"[DEBUG_LUAN] " x,__VA_ARGS__)
+#endif
+
+// utlua_mainthread is referenced in ssl.c without including utlua.h —
+// declare here so .c sources see it via the prefix header.
+#ifdef __cplusplus
+extern "C" {
+#endif
+struct lua_State;
+struct lua_State *utlua_mainthread(struct lua_State *L);
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* LuanMac_pch */

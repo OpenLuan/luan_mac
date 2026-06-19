@@ -1,0 +1,27 @@
+[submodule "lua-apple/luafan"]
+	path = lua-apple/luafan
+	url = https://github.com/luafan/luafan.git
+[submodule "libevent"]
+	path = lua-apple/libevent
+	url = https://github.com/libevent/libevent.git
+[submodule "lua53"]
+	path = lua-apple/lua53
+	url = https://github.com/lua/lua.git
+[submodule "lua-apple/third_party/brotli"]
+	path = lua-apple/third_party/brotli
+	url = https://github.com/google/brotli.git
+[submodule "lua-apple/third_party/lua-openssl"]
+	path = lua-apple/third_party/lua-openssl
+	url = https://github.com/OpenLuan/lua-openssl.git
+	branch = luan-eaa7923
+[submodule "lua-apple/third_party/openssl"]
+	path = lua-apple/third_party/openssl
+	url = https://github.com/openssl/openssl.git
+[submodule "luan"]
+	path = luan
+	url = https://github.com/OpenLuan/luan.git
+	branch = main
+[submodule "webase"]
+	path = webase
+	url = https://github.com/luafan/webase.git
+	branch = master

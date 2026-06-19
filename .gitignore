@@ -1,0 +1,34 @@
+.DS_Store
+xcuserdata/
+*.xcuserstate
+build/
+DerivedData/
+
+# Local / temp
+tmp/
+outputs/
+*.dmg
+dmg_staging/
+
+# Generated runtime output; rebuild with scripts/build_runtime.sh.
+# Keep only the CA bundle required for HTTPS at runtime.
+runtime/*
+!runtime/cacert.pem
+
+# Legacy product dir name (pre-rename); ignore if left on disk
+service/_amalgamated.*
+service/core.dll
+service/core.luac
+service/.build-stamp
+service/.build-lua-stage/
+service/sites/
+
+# Prebuilt crypto/curl frameworks (build or fetch locally; large binaries)
+Frameworks/**/*.a
+Frameworks/**/*.dylib
+Frameworks/**/*.framework/
+# OpenSSL xcframeworks are now build outputs of scripts/build_openssl_xcframework.sh
+# (built from the openssl submodule); never commit them.
+Frameworks/*.xcframework/
+# Generated OpenSSL public headers (build output; consumed via HEADER_SEARCH_PATHS)
+Frameworks/openssl-headers/

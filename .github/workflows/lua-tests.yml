@@ -1,0 +1,101 @@
+name: Lua Tests
+
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    branches: [main, "refactor/**"]
+
+jobs:
+  lua-unit:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.PAT_TOKEN }}
+          submodules: recursive
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        run: xcodegen generate
+
+      - name: Build xcframework dependencies
+        run: bash scripts/build_xcframeworks.sh macos
+
+      - name: Build embedded luan CLI
+        run: |
+          xcodebuild -project LuanMac.xcodeproj \
+            -scheme luan \
+            -configuration Release \
+            -derivedDataPath build-cli \
+            CODE_SIGN_IDENTITY="-" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            ONLY_ACTIVE_ARCH=NO
+
+      - name: Build runtime
+        run: bash scripts/build_runtime.sh
+
+      - name: Run Lua unit suites
+        env:
+          LUAN_UNIT_LUAN_BIN: ${{ github.workspace }}/build-cli/Build/Products/Release/luan
+          LUAN_UNIT_RUNTIME: ${{ github.workspace }}/runtime
+          LUAN_UNIT_DOCROOT: ${{ runner.temp }}/luan-unit-ws
+          LUAN_UNIT_OS: Darwin
+        run: |
+          mkdir -p artifacts
+          set -o pipefail
+          bash luan/tests/run_unit.sh | tee artifacts/lua-unit.log
+
+      - name: Start local test app for HTTP integration
+        env:
+          LUAN_BIN: ${{ github.workspace }}/build-cli/Build/Products/Release/luan
+          TEST_RUNTIME: ${{ github.workspace }}/runtime
+          TEST_DOCROOT: ${{ runner.temp }}/luan-http-ws
+          DERIVED_DATA: ${{ github.workspace }}/build-cli
+          TEST_PORT: 8081
+          ACTIVATION_KEY: testkey123
+          JWT_SECRET: test_jwt_secret_key_for_ci
+          TEST_EXISTING_USER: lua_ci_root
+          TEST_EXISTING_PASSWORD: lua_ci_root_password
+          TEST_ADMIN_USER: lua_ci_root
+          TEST_ADMIN_PASSWORD: lua_ci_root_password
+          RESET_TEST_DOCROOT: 1
+          LUAN_TEST_ENV: 1
+        run: |
+          bash scripts/start_test_app.sh > artifacts/lua-http-app.log 2>&1
+
+      - name: Run migrated Lua HTTP integration suites
+        env:
+          LUAN_UNIT_LUAN_BIN: ${{ github.workspace }}/build-cli/Build/Products/Release/luan
+          LUAN_UNIT_RUNTIME: ${{ github.workspace }}/runtime
+          LUAN_UNIT_DOCROOT: ${{ runner.temp }}/luan-http-ws
+          LUAN_UNIT_OS: Darwin
+          BASE_URL: http://127.0.0.1:8081
+          TEST_UNIT_INCLUDE_INTEGRATION: 1
+          TEST_UNIT_FILTER: test_health.lua,test_auth.lua,test_api.lua,test_user_config.lua,test_agent_tools.lua,test_anonymous.lua,test_retry.lua,test_stream.lua,test_sse.lua,test_websocket.lua,test_sandbox.lua,test_module.lua,test_memory_todo.lua,test_openssl.lua,test_providers.lua,test_chat.lua,test_mcp_git.lua,test_mcp_gh.lua,test_maintenance.lua,test_site_agent.lua,test_cron.lua,test_trash.lua,test_shared.lua
+          LUAN_UNIT_ENV_TEST_EXISTING_USER: lua_ci_root
+          LUAN_UNIT_ENV_TEST_EXISTING_PASSWORD: lua_ci_root_password
+        run: |
+          mkdir -p artifacts
+          set -o pipefail
+          bash luan/tests/run_unit.sh | tee artifacts/lua-http-integration.log
+
+      - name: Stop local test app
+        if: always()
+        env:
+          BASE_URL: http://127.0.0.1:8081
+        run: |
+          curl --silent --show-error --max-time 5 \
+            -X POST -H 'Content-Type: application/json; charset=utf-8' \
+            -d '{}' "$BASE_URL/_test/exit" || true
+
+      - name: Upload Lua test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lua-test-report
+          path: artifacts/*.log
+          if-no-files-found: warn

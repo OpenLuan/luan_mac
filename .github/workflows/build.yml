@@ -1,0 +1,73 @@
+name: Build macOS App
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, "refactor/**"]
+    tags: ["v*.*.*"]
+  pull_request:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.PAT_TOKEN }}
+          submodules: recursive
+
+      - name: Build runtime
+        run: bash scripts/build_runtime.sh
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        run: xcodegen generate
+
+      - name: Build xcframework dependencies
+        run: bash scripts/build_xcframeworks.sh macos
+
+      - name: Build
+        run: |
+          xcodebuild -project LuanMac.xcodeproj \
+            -scheme LuanMac \
+            -configuration Release \
+            -derivedDataPath build \
+            CODE_SIGN_IDENTITY="-" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            ONLY_ACTIVE_ARCH=NO
+
+      - name: Package DMG
+        if: success()
+        run: |
+          APP_PATH=$(find build -name "LuanMac.app" -type d | head -1)
+          if [ -z "$APP_PATH" ]; then
+            echo "LuanMac.app not found"; exit 1
+          fi
+          mkdir -p dmg_staging
+          cp -R "$APP_PATH" dmg_staging/
+          ln -s /Applications dmg_staging/Applications
+          hdiutil create -volname "LuanMac" -srcfolder dmg_staging \
+            -ov -format UDZO LuanMac.dmg
+
+      - name: Upload artifact
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: LuanMac.dmg
+          path: LuanMac.dmg
+
+      - name: Publish GitHub Release
+        if: success() && startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" LuanMac.dmg \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "$GITHUB_REF_NAME" \
+            --generate-notes
