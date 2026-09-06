@@ -470,9 +470,7 @@ int caplua_resume(lua_State *co, lua_State *from, int count){
     incrRef(ROOT);
 
 //    double startTime = timeout_gettime();
-    lua_lock(co);
     int status = lua_resume(co, from, count);
-    lua_unlock(co);
 //    double stopTime = timeout_gettime();
 
     lua_lock(ROOT);

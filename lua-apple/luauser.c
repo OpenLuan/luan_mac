@@ -41,11 +41,9 @@ int lockInited = 0;
 #define STATEDATA_TOLOCK(L) lock
 #endif
 
-// Thread-local lock depth counter.
-// Only the outermost lock/unlock pair operates the real mutex;
-// inner (nested) calls just adjust the counter.  This makes the lock
-// resilient to Lua longjmp skipping inner lua_unlock calls:
-// the outermost unlock still releases the mutex correctly.
+// Thread-local lock depth mirrors the recursive mutex ownership count.
+// Every successful lock performs one real mutex lock and every unlock performs
+// the matching real mutex unlock; this keeps longjmp recovery explicit.
 static _Thread_local int lua_lock_depth = 0;
 
 // Runtime lock switch. The global Lua mutex is only worth taking when more
@@ -80,9 +78,7 @@ lua_State* GetMainState(lua_State *L){
 
 void LockMainState(lua_State *L){
     if (L && lua_locking_on()) {
-        if (lua_lock_depth == 0) {
-            pthread_mutex_lock(&STATEDATA_TOLOCK(L));
-        }
+        pthread_mutex_lock(&STATEDATA_TOLOCK(L));
         lua_lock_depth++;
     }
 }
@@ -90,62 +86,69 @@ void LockMainState(lua_State *L){
 void UnLockMainState(lua_State *L){
     if (L && lua_locking_on()) {
         if (lua_lock_depth <= 0) {
-            // Defensive: unbalanced unlock, should not happen.
-            // Do not touch the mutex — it is not held by this thread.
+            // Defensive: unbalanced unlock, should not touch the mutex.
             return;
         }
+        pthread_mutex_unlock(&STATEDATA_TOLOCK(L));
         lua_lock_depth--;
-        if (lua_lock_depth == 0) {
-            pthread_mutex_unlock(&STATEDATA_TOLOCK(L));
-        }
     }
 }
 
 // Lock/unlock the global Lua mutex without requiring a lua_State pointer.
-// Uses the same lua_lock_depth to allow nesting with LockMainState.
 void LuaGlobalLock(void) {
     if (lockInited && lua_locking_on()) {
-        if (lua_lock_depth == 0) {
-            pthread_mutex_lock(&lock);
-        }
+        pthread_mutex_lock(&lock);
         lua_lock_depth++;
     }
 }
 
 void LuaGlobalUnlock(void) {
     if (lockInited && lua_locking_on()) {
-        if (lua_lock_depth <= 0) {
-            return;
-        }
+        if (lua_lock_depth <= 0) return;
+        pthread_mutex_unlock(&lock);
         lua_lock_depth--;
-        if (lua_lock_depth == 0) {
-            pthread_mutex_unlock(&lock);
-        }
     }
 }
 
-// The main thread enters fan.loop() from inside a resume that holds the global
-// Lua lock (lua_lock_depth > 0). event_base_loop() then blocks forever, so the
-// lock is never released and worker-thread callbacks that need Lua deadlock in
-// LockMainState. Suspend releases the lock fully (records depth, unlocks the
-// mutex, zeroes the thread-local depth) so worker threads can acquire it while
-// the main thread is parked in the loop dispatching its own callbacks via the
-// normal lock/unlock pairs. Resume restores the recorded depth and re-acquires
-// the mutex after the loop exits, so the enclosing resume's trailing unlock
-// stays balanced. Returns the suspended depth (0 means nothing was held).
+// Fully release every recursive level around the blocking event loop.
 int LuaLockSuspendForLoop(void) {
     int depth = lua_lock_depth;
-    if (lockInited && depth > 0) {
-        lua_lock_depth = 0;
-        pthread_mutex_unlock(&lock);
+    if (lockInited && lua_locking_on()) {
+        while (lua_lock_depth > 0) {
+            pthread_mutex_unlock(&lock);
+            lua_lock_depth--;
+        }
     }
     return depth;
 }
 
 void LuaLockResumeAfterLoop(int depth) {
-    if (lockInited && depth > 0) {
-        pthread_mutex_lock(&lock);
-        lua_lock_depth = depth;
+    if (depth < 0) depth = 0;
+    if (lockInited && lua_locking_on()) {
+        while (lua_lock_depth < depth) {
+            pthread_mutex_lock(&lock);
+            lua_lock_depth++;
+        }
+    }
+}
+
+int LuaLockDepthGet(void) { return lua_lock_depth; }
+
+// Restore both the TLS mirror and the recursive mutex's actual count.
+void LuaLockDepthSet(int depth) {
+    if (depth < 0) depth = 0;
+    if (lockInited && lua_locking_on()) {
+        while (lua_lock_depth > depth) {
+            pthread_mutex_unlock(&lock);
+            lua_lock_depth--;
+        }
+        while (lua_lock_depth < depth) {
+            pthread_mutex_lock(&lock);
+            lua_lock_depth++;
+        }
+    } else {
+        // Locking is disabled, so no real mutex ownership exists to restore.
+        lua_lock_depth = 0;
     }
 }
 
@@ -160,7 +163,7 @@ void LuaLockInitial(lua_State * L){
 #endif
         pthread_mutexattr_t a;
         pthread_mutexattr_init(&a);
-        pthread_mutexattr_settype(&a, PTHREAD_MUTEX_NORMAL);
+        pthread_mutexattr_settype(&a, PTHREAD_MUTEX_RECURSIVE);
         pthread_mutex_init(&STATEDATA_TOLOCK(L), &a);
         
         lockInited = 1;
@@ -184,10 +187,12 @@ void LuaLockInitialThread(lua_State * L, lua_State * co){
 }
 
 void LuaLockFinalState(lua_State * L){
-    // lua_close() holds the lock; force-release regardless of depth.
-    if (lua_lock_depth > 0) {
-        lua_lock_depth = 0;
-        pthread_mutex_unlock(&STATEDATA_TOLOCK(L));
+    // lua_close() holds the lock; force-release every recursive level.
+    if (lockInited && lua_locking_on()) {
+        while (lua_lock_depth > 0) {
+            pthread_mutex_unlock(&STATEDATA_TOLOCK(L));
+            lua_lock_depth--;
+        }
     }
 #ifndef GLOBAL_LOCK
     pthread_mutex_destroy(&STATEDATA_TOLOCK(L));
@@ -266,8 +271,6 @@ LUALIB_API int luaL_typerror (lua_State *L, int narg, const char *tname) {
   return luaL_argerror(L, narg, msg);
 }
 
-int LuaLockDepthGet(void) { return lua_lock_depth; }
-void LuaLockDepthSet(int depth) { lua_lock_depth = depth; }
 
 int LuaRefCount(lua_State *L) {
     if (!L) return 0;

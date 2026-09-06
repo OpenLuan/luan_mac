@@ -43,12 +43,10 @@ extern _Atomic size_t lua_mem_total;
 // Background work belongs in service/ + dedicated coroutines, not hidden here.
 
 static int luan_resume(lua_State *co, lua_State *from, int count) {
-    lua_lock(co);
     int status = lua_resume(co, from, count);
     if (status > LUA_YIELD) {
         LuaError(co, 0);
     }
-    lua_unlock(co);
     return status;
 }
 
@@ -126,7 +124,14 @@ static int luan_lua_print(lua_State *L) {
              tm_info.tm_hour, tm_info.tm_min, tm_info.tm_sec,
              (int)(tv.tv_usec / 1000));
 
-    NSString *line = [NSString stringWithFormat:@"[%s] [lua] %@\n", ts, msg];
+    BOOL trace_worker = event_mgr_worker_count() > 0;
+    NSString *line;
+    if (trace_worker) {
+        line = [NSString stringWithFormat:@"[%s] [worker=%d] [lua] %@\n",
+                ts, event_mgr_current_worker_id(), msg];
+    } else {
+        line = [NSString stringWithFormat:@"[%s] [lua] %@\n", ts, msg];
+    }
     luan_emit(line);
     return 0;
     }

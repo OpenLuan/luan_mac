@@ -56,8 +56,8 @@ void UnLockMainState(lua_State *L);
 void LuaGlobalLock(void);
 void LuaGlobalUnlock(void);
 
-// Release/re-acquire the global Lua lock around a blocking main-thread
-// event loop so worker threads can run Lua callbacks. See luauser.c.
+// Release/re-acquire every recursive level of the global Lua lock around a
+// blocking main-thread event loop. See luauser.c.
 int LuaLockSuspendForLoop(void);
 void LuaLockResumeAfterLoop(int depth);
 
