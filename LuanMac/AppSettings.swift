@@ -112,7 +112,7 @@ final class AppSettings: ObservableObject {
     func regenerateJWT()        { jwtSecret = Self.randomHex(bytes: 32); save() }
     func regenerateActivation() { activationKey = Self.randomHex(bytes: 16); save() }
 
-    /// 转成传给 LuaBridge 的 env 字典.
+    /// Convert settings to the environment dictionary passed to LuaBridge.
     func envDict(uiLanguage: String = "system") -> [String: String] {
         var env = [
             "SERVICE_HOST": host,
@@ -124,7 +124,7 @@ final class AppSettings: ObservableObject {
             "DEBUG": debug ? "true" : "false",
             "AI_DEBUG": aiDebug ? "1" : "0",
             "LUAN_UI_LANGUAGE": uiLanguage,
-            // 与 Dockerfile 默认一致, 开启 C 实现的 httpd/http (支持 websocket).
+            // Match Docker defaults: use the C httpd/http implementation (including WebSocket).
             "HTTP_USING_CORE": "true",
             "HTTPD_USING_CORE": "true",
             "JWT_SECRET": jwtSecret,
@@ -139,6 +139,24 @@ final class AppSettings: ObservableObject {
             env["NATIVE_CHROME_MCP_ENABLED"] = "0"
         }
         return env
+    }
+
+    /// Build a shell command with the same service settings used by the SwiftUI runner.
+    func cliCommand(documentRoot: String) -> String {
+        func shellQuote(_ value: String) -> String {
+            "'" + value.replacingOccurrences(of: "'", with: "'\\''") + "'"
+        }
+
+        var args = ["luan", "--document-root", shellQuote((documentRoot as NSString).expandingTildeInPath),
+                    "--host", shellQuote(host), "--port", String(port), "--workers", String(workers),
+                    "--sqlite-soft-heap-mb", String(sqliteSoftHeapMB)]
+        if debug { args.append("--debug") }
+        if aiDebug { args.append("--ai-debug") }
+        if sandboxUnrestricted { args.append("--sandbox-unrestricted") }
+        if sslSkipVerify { args.append("--ssl-skip-verify") }
+        if !jwtSecret.isEmpty { args.append(contentsOf: ["--jwt-secret", shellQuote(jwtSecret)]) }
+        if !activationKey.isEmpty { args.append(contentsOf: ["--activation-key", shellQuote(activationKey)]) }
+        return args.joined(separator: " ")
     }
 
     private static func randomHex(bytes: Int) -> String {

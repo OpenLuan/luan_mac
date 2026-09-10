@@ -23,6 +23,8 @@
 "native.settings.autoStart" = "启动应用时自动运行服务";
 "native.settings.uiLanguage" = "语言";
 "native.settings.uiLanguage.system" = "跟随系统";
+"native.settings.cliCommand.copy" = "复制 CLI 命令";
+"native.settings.cliCommand.copied" = "已复制";
 "native.settings.chromeMCP.enabled" = "启用原生 Chrome MCP";
 "native.settings.chromeMCP.terminateOnQuit" = "退出应用时关闭应用管理的 Chrome";
 "native.settings.chromeMCP.port" = "端口";

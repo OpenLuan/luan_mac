@@ -23,6 +23,8 @@
 "native.settings.autoStart" = "Start service automatically when app opens";
 "native.settings.uiLanguage" = "Language";
 "native.settings.uiLanguage.system" = "System";
+"native.settings.cliCommand.copy" = "Copy CLI command";
+"native.settings.cliCommand.copied" = "Copied";
 "native.settings.chromeMCP.enabled" = "Enable native Chrome MCP";
 "native.settings.chromeMCP.terminateOnQuit" = "Kill the app-managed Chrome when the app quits";
 "native.settings.chromeMCP.port" = "Port";

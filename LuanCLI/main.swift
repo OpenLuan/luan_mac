@@ -41,6 +41,7 @@ func printUsage() {
           --host <addr>            Bind address (default: 127.0.0.1)
       -p, --port <port>            HTTP port (default: 8080)
           --workers <n>            Worker threads (default: 2)
+          --sqlite-soft-heap-mb <n> SQLite soft heap limit in MB (default: 8)
           --debug                  Enable debug logging
           --ai-debug               Enable AI debug logging
           --sandbox-unrestricted   Allow sandbox escape for root users
@@ -93,6 +94,10 @@ func parseArgs() -> Config? {
             i += 1
             guard i < args.count, let w = Int(args[i]) else { fputs("error: \(arg) requires a numeric value\n", stderr); return nil }
             config.workers = w
+        case "--sqlite-soft-heap-mb":
+            i += 1
+            guard i < args.count, let mb = Int(args[i]) else { fputs("error: \(arg) requires a numeric value\n", stderr); return nil }
+            config.sqliteSoftHeapMB = mb
         case "--debug": config.debug = true
         case "--ai-debug": config.aiDebug = true
         case "--sandbox-unrestricted": config.sandboxUnrestricted = true

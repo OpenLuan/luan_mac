@@ -448,6 +448,23 @@ struct SettingsSheet: View {
                         .monospacedDigit()
                 }
                 .disabled(!canEdit)
+
+                HStack(spacing: 8) {
+                    Button {
+                        NSPasteboard.general.clearContents()
+                        NSPasteboard.general.setString(settings.cliCommand(documentRoot: documentRoot), forType: .string)
+                        copiedLabel = "cli"
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                            if copiedLabel == "cli" { copiedLabel = nil }
+                        }
+                    } label: {
+                        Label(copiedLabel == "cli" ? L("native.settings.cliCommand.copied") : L("native.settings.cliCommand.copy"),
+                              systemImage: copiedLabel == "cli" ? "checkmark" : "doc.on.doc")
+                    }
+                    .buttonStyle(.borderless)
+                    .disabled(!canEdit)
+                    Spacer()
+                }
             }
         }
     }
