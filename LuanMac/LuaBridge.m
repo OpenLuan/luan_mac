@@ -386,7 +386,14 @@ static int luan_lua_print(lua_State *L) {
             }
             lua_setglobal(co, "arg");
         }
+    }
 
+    // Do not hold the outer setup lock across FAN_RESUME. lua_resume() owns
+    // and releases its own lock; keeping this lock here would leave one
+    // recursive level held while the resumed coroutine executes C functions.
+    lua_unlock(L);
+
+    if (loadStatus == LUA_OK) {
         int status = FAN_RESUME(co, L, 0);
         // LUA_OK=0 finished; LUA_YIELD=1 suspended; >1 error.
         // core.lua is expected to call fan.loop() (blocks in event_mgr_loop).
@@ -399,9 +406,7 @@ static int luan_lua_print(lua_State *L) {
             emit(msg);
         } else if (status == LUA_YIELD) {
             emit(@"!! lua entry yielded before fan.loop; entering event_mgr_loop\n");
-            lua_unlock(L);
             event_mgr_loop();
-            lua_lock(L);
         } else {
             // A normal return is expected for standalone script execution.
             if (!execMode) {
@@ -410,6 +415,7 @@ static int luan_lua_print(lua_State *L) {
         }
     }
 
+    lua_lock(L);
     luaL_unref(L, LUA_REGISTRYINDEX, threadRef);
     lua_unlock(L);
 
