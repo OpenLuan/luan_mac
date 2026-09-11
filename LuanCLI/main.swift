@@ -273,45 +273,49 @@ func runtimeDirLooksValid(_ path: String) -> Bool {
     return fm.fileExists(atPath: path + "/core.lua")
 }
 
-// Primary: documentRoot/runtime (build.sh deploys here or symlinked)
+// Primary: documentRoot/runtime (build.sh deploys here or symlinked).
 let docRuntime = config.documentRoot + "/runtime"
-if runtimeDirLooksValid(docRuntime) {
-    runtimeDir = docRuntime
+let candidates = [
+    // Inside .app bundle (binary at Contents/MacOS/luan)
+    (exeDir as NSString).appendingPathComponent("../Resources/runtime"),
+    // Alongside .app in Build/Products/Debug/ (Xcode dev layout)
+    exeDir + "/LuanMac.app/Contents/Resources/runtime",
+    // Development: xcodebuild output, runtime next to .app parent
+    (exeDir as NSString).appendingPathComponent("../../../runtime"),
+    // Fallback: next to binary
+    exeDir + "/runtime",
+]
+
+var sourceDir = ""
+for c in candidates {
+    let resolved = (c as NSString).standardizingPath
+    if runtimeDirLooksValid(resolved) {
+        sourceDir = resolved
+        break
+    }
 }
 
-// If documentRoot/runtime doesn't exist, find a valid source and symlink it.
-if runtimeDir.isEmpty {
-    let candidates = [
-        // Inside .app bundle (binary at Contents/MacOS/luan)
-        (exeDir as NSString).appendingPathComponent("../Resources/runtime"),
-        // Alongside .app in Build/Products/Debug/ (Xcode dev layout)
-        exeDir + "/LuanMac.app/Contents/Resources/runtime",
-        // Development: xcodebuild output, runtime next to .app parent
-        (exeDir as NSString).appendingPathComponent("../../../runtime"),
-        // Fallback: next to binary
-        exeDir + "/runtime",
-    ]
-    var sourceDir = ""
-    for c in candidates {
-        let resolved = (c as NSString).standardizingPath
-        if runtimeDirLooksValid(resolved) {
-            sourceDir = resolved
-            break
-        }
+// A symlink may still resolve to a valid but stale runtime from another build.
+// When a current build output is available, recreate the link unconditionally.
+let docRuntimeIsSymlink = (try? fm.destinationOfSymbolicLink(atPath: docRuntime)) != nil
+if docRuntimeIsSymlink && !sourceDir.isEmpty {
+    try? fm.removeItem(atPath: docRuntime)
+    try? fm.createSymbolicLink(atPath: docRuntime, withDestinationPath: sourceDir)
+}
+
+if runtimeDirLooksValid(docRuntime) {
+    runtimeDir = docRuntime
+} else if !sourceDir.isEmpty {
+    // Create symlink so documentRoot/runtime always exists for next launch.
+    try? fm.createDirectory(atPath: config.documentRoot, withIntermediateDirectories: true)
+    if fm.fileExists(atPath: docRuntime) {
+        try? fm.removeItem(atPath: docRuntime)
     }
-    if !sourceDir.isEmpty {
-        // Create symlink so documentRoot/runtime always exists for next launch
-        try? fm.createDirectory(atPath: config.documentRoot, withIntermediateDirectories: true)
-        // Remove stale invalid symlink/dir if present
-        if fm.fileExists(atPath: docRuntime) {
-            try? fm.removeItem(atPath: docRuntime)
-        }
-        try? fm.createSymbolicLink(atPath: docRuntime, withDestinationPath: sourceDir)
-        if runtimeDirLooksValid(docRuntime) {
-            runtimeDir = docRuntime
-        } else {
-            runtimeDir = sourceDir
-        }
+    try? fm.createSymbolicLink(atPath: docRuntime, withDestinationPath: sourceDir)
+    if runtimeDirLooksValid(docRuntime) {
+        runtimeDir = docRuntime
+    } else {
+        runtimeDir = sourceDir
     }
 }
 if runtimeDir.isEmpty {

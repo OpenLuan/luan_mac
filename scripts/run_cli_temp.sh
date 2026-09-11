@@ -137,14 +137,18 @@ if [ -z "$DOCROOT" ]; then
 fi
 mkdir -p "$DOCROOT"
 
-# Ensure DOCROOT/runtime exists (symlink to build output if missing).
-if [ ! -e "$DOCROOT/runtime/core.lua" ]; then
+# Ensure DOCROOT/runtime points at this build output. A stale symlink may
+# still contain core.lua, so it must be recreated instead of being accepted.
+if [ -L "$DOCROOT/runtime" ]; then
+    rm -f "$DOCROOT/runtime"
+    ln -s "$RUNTIME_DIR" "$DOCROOT/runtime"
+elif [ ! -e "$DOCROOT/runtime/core.lua" ]; then
     rm -f "$DOCROOT/runtime" 2>/dev/null || true
     # If a real directory is in the way without core.lua, replace it.
     if [ -e "$DOCROOT/runtime" ] && [ ! -L "$DOCROOT/runtime" ]; then
         rm -rf "$DOCROOT/runtime"
     fi
-    ln -sfn "$RUNTIME_DIR" "$DOCROOT/runtime"
+    ln -s "$RUNTIME_DIR" "$DOCROOT/runtime"
 fi
 
 EXTRA=()

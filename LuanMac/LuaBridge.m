@@ -241,20 +241,27 @@ static int luan_lua_print(lua_State *L) {
         return dir && [fm fileExistsAtPath:[dir stringByAppendingPathComponent:@"core.lua"]];
     };
 
-    if (!hasCore(localRuntimeDir)) {
-        NSString *linkTarget = nil;
-        if (hasCore(bundleRuntime)) {
-            linkTarget = bundleRuntime;
-        } else if (hasCore(legacyServiceDir)) {
-            // Prefer promoting legacy documentRoot/service → runtime symlink target path.
-            linkTarget = legacyServiceDir;
+    NSString *linkTarget = nil;
+    if (hasCore(bundleRuntime)) {
+        linkTarget = bundleRuntime;
+    } else if (hasCore(legacyServiceDir)) {
+        // Prefer promoting legacy documentRoot/service → runtime symlink target path.
+        linkTarget = legacyServiceDir;
+    }
+
+    // A workspace runtime symlink may still resolve to a valid but stale
+    // runtime from another app/build path. Refresh it to this app's bundle
+    // runtime whenever the current target is available.
+    BOOL localRuntimeIsSymlink = [fm destinationOfSymbolicLinkAtPath:localRuntimeDir error:nil] != nil;
+    if (localRuntimeIsSymlink && linkTarget) {
+        [fm removeItemAtPath:localRuntimeDir error:nil];
+        [fm createSymbolicLinkAtPath:localRuntimeDir withDestinationPath:linkTarget error:nil];
+    } else if (!hasCore(localRuntimeDir) && linkTarget) {
+        [fm createDirectoryAtPath:documentRoot withIntermediateDirectories:YES attributes:nil error:nil];
+        if ([fm fileExistsAtPath:localRuntimeDir]) {
+            [fm removeItemAtPath:localRuntimeDir error:nil];
         }
-        if (linkTarget) {
-            if ([fm fileExistsAtPath:localRuntimeDir]) {
-                [fm removeItemAtPath:localRuntimeDir error:nil];
-            }
-            [fm createSymbolicLinkAtPath:localRuntimeDir withDestinationPath:linkTarget error:nil];
-        }
+        [fm createSymbolicLinkAtPath:localRuntimeDir withDestinationPath:linkTarget error:nil];
     }
 
     NSString *runtimeDir = nil;
