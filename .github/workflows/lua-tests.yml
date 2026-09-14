@@ -67,6 +67,11 @@ jobs:
         run: |
           bash scripts/start_test_app.sh > artifacts/lua-http-app.log 2>&1
 
+      - name: Prepare file scanner symlink fixture
+        run: |
+          bash luan/tests/create_file_scan_symlink_fixture.sh \
+            "${{ runner.temp }}/luan-http-ws/test-fixtures/file_scan_symlink"
+
       - name: Run migrated Lua HTTP integration suites
         env:
           LUAN_UNIT_LUAN_BIN: ${{ github.workspace }}/build-cli/Build/Products/Release/luan
@@ -75,7 +80,8 @@ jobs:
           LUAN_UNIT_OS: Darwin
           BASE_URL: http://127.0.0.1:8081
           TEST_UNIT_INCLUDE_INTEGRATION: 1
-          TEST_UNIT_FILTER: test_health.lua,test_auth.lua,test_api.lua,test_user_config.lua,test_agent_tools.lua,test_anonymous.lua,test_retry.lua,test_stream.lua,test_sse.lua,test_websocket.lua,test_sandbox.lua,test_module.lua,test_memory_todo.lua,test_openssl.lua,test_providers.lua,test_chat.lua,test_mcp_git.lua,test_mcp_gh.lua,test_maintenance.lua,test_site_agent.lua,test_cron.lua,test_trash.lua,test_shared.lua
+          TEST_UNIT_FILTER: test_health.lua,test_auth.lua,test_api.lua,test_user_config.lua,test_agent_tools.lua,test_file_scan_symlink.lua,test_anonymous.lua,test_retry.lua,test_stream.lua,test_sse.lua,test_websocket.lua,test_sandbox.lua,test_module.lua,test_memory_todo.lua,test_openssl.lua,test_providers.lua,test_chat.lua,test_mcp_git.lua,test_mcp_gh.lua,test_maintenance.lua,test_site_agent.lua,test_cron.lua,test_trash.lua,test_shared.lua
+          FILE_SCAN_TEST_ROOT: ${{ runner.temp }}/luan-http-ws/test-fixtures/file_scan_symlink
           LUAN_UNIT_ENV_TEST_EXISTING_USER: lua_ci_root
           LUAN_UNIT_ENV_TEST_EXISTING_PASSWORD: lua_ci_root_password
         run: |

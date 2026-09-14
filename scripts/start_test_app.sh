@@ -68,6 +68,7 @@ fi
 export LUAN_TEST_ENV=1
 export BASE_URL="${BASE_URL:-http://${TEST_HOST}:${TEST_PORT}}"
 export SERVICE_PORT="$TEST_PORT"
+export FILE_SCAN_TEST_ROOT="${FILE_SCAN_TEST_ROOT:-$TEST_DOCROOT/test-fixtures/file_scan_symlink}"
 # The luan CLI target has no NativeChromeMCP (app target only); never let a
 # inherited NATIVE_CHROME_MCP_ENABLED=1 make the test env try to reach the
 # app's native MCP (wrong token -> 401). The chrome-devtools client falls back
