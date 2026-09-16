@@ -134,6 +134,13 @@ void LuaLockResumeAfterLoop(int depth) {
 
 int LuaLockDepthGet(void) { return lua_lock_depth; }
 
+/* Build-role query consumed by luafan's event_mgr (weak import there): in this
+ * build the lock lives INSIDE the interpreter (lua53 is compiled with
+ * -DLUA_USER_H="<luauser.h>"), so every lua_resume() already holds the mutex and
+ * luafan must not add its own resume wrapper on top.
+ * See luafan/src/event_mgr.c install_locking_resume(). */
+int LuaCoreLockHooked(void) { return 1; }
+
 // Restore both the TLS mirror and the recursive mutex's actual count.
 void LuaLockDepthSet(int depth) {
     if (depth < 0) depth = 0;
