@@ -29,7 +29,7 @@ macOS host for [Luan](https://github.com/OpenLuan) — embeds Lua 5.3.3, [luafan
 
 ```bash
 git submodule update --init --recursive
-./scripts/build_runtime.sh
+./scripts/build_runtime.sh  # also validates all published web/*.js syntax
 brew install xcodegen
 xcodegen generate
 ./scripts/build_xcframeworks.sh macos
