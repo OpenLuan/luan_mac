@@ -40,6 +40,19 @@ struct StateData{
 #define lua_lock(L)    LockMainState(L)
 #define lua_unlock(L)  UnLockMainState(L)
 
+/*
+ * R18: Lua 5.3's checkGC() calls luai_threadyield() after Protect() has
+ * restored the VM state, but the unlock/re-lock pair can let another worker
+ * collect and shrink this coroutine's stack. Re-derive the local frame base
+ * after re-acquiring the lock so lvm.c never uses a stale stack pointer.
+ * This header is injected before llimits.h defines its fallback macro.
+ */
+#if !defined(luai_threadyield)
+#define luai_threadyield(L) \
+    { lua_unlock(L); lua_lock(L); \
+      base = (ci)->u.l.base; }
+#endif
+
 void LuaLockInitial(lua_State * L);
 void LuaLockInitialThread(lua_State * L, lua_State * co);
 void LuaLockFinalState(lua_State * L);
