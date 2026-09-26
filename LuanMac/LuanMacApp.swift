@@ -24,6 +24,7 @@ struct LuanMacApp: App {
         var nativeChromeMCP: NativeChromeMCP?
 
         func applicationWillTerminate(_ notification: Notification) {
+            LuaRunner.shared.terminateForAppExit()
             if let mcp = nativeChromeMCP {
                 mcp.stop(killChrome: mcp.terminateChromeOnQuit)
             }

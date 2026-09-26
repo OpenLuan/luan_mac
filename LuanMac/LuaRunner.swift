@@ -238,6 +238,21 @@ final class LuaRunner: ObservableObject {
         }
     }
 
+    /// Synchronously terminate the child before the app process exits. Async
+    /// cleanup tasks are not reliable once NSApplication is terminating.
+    func terminateForAppExit() {
+        guard let child = process, child.isRunning else { return }
+        state = .stopping
+        stopHealthcheck()
+        stopMetricsSampling()
+        closeCaptureWindow()
+        child.terminate()
+        usleep(250_000)
+        if child.isRunning {
+            _ = Darwin.kill(child.processIdentifier, SIGKILL)
+        }
+    }
+
     private func consumeChildOutput(_ chunk: String) {
         for line in chunk.split(whereSeparator: { $0 == "\n" || $0 == "\r" }) {
             let text = String(line)
