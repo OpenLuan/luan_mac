@@ -23,6 +23,8 @@ extern int (*FAN_RESUME)(lua_State *co, lua_State *from, int count);
 extern void incrRef(lua_State *L);
 extern void decrRef(lua_State *L);
 
+static int luan_process_metrics(lua_State *L);
+
 // Globals historically defined by the tunnel host; provide stubs for the Mac app.
 _Atomic size_t libevent_mem_total = 0;
 BOOL pp_ipv6 = NO;
@@ -326,6 +328,7 @@ static int luan_lua_print(lua_State *L) {
     lua_pop(L, 1);
 
     lua_register(L, "print", luan_lua_print);
+    lua_register(L, "luan_process_metrics", luan_process_metrics);
 
     _state = [[LuaState alloc] initWithState:L];
 
@@ -458,6 +461,17 @@ static int luan_lua_print(lua_State *L) {
 }
 
 // MARK: - Metrics class methods
+
+static int luan_process_metrics(lua_State *L) {
+    lua_newtable(L);
+    lua_pushinteger(L, (lua_Integer)[LuaBridge currentLuaMemKB]);
+    lua_setfield(L, -2, "lua_memory_kb");
+    lua_pushinteger(L, (lua_Integer)[LuaBridge currentRSSBytes]);
+    lua_setfield(L, -2, "rss_bytes");
+    lua_pushnumber(L, [LuaBridge currentCPUPercent]);
+    lua_setfield(L, -2, "cpu_percent");
+    return 1;
+}
 
 + (size_t)currentLuaMemKB {
     return atomic_load(&lua_mem_total) >> 10;

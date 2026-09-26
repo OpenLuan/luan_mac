@@ -6,7 +6,7 @@ import CryptoKit
 final class AppSettings: ObservableObject {
     @Published var host: String = "127.0.0.1"
     @Published var port: Int = 8080
-    @Published var workers: Int = 2
+    @Published var workers: Int = 0
     @Published var sqliteSoftHeapMB: Int = 8
     @Published var debug: Bool = false
     @Published var aiDebug: Bool = false
@@ -24,6 +24,8 @@ final class AppSettings: ObservableObject {
     /// Generated in memory at startup (never persisted) and passed to the Lua
     /// service via env, so only the app and its service process can call it.
     private(set) var nativeChromeMCPToken: String = ""
+    /// Ephemeral bearer token for the local process status endpoint.
+    private(set) var statusToken: String = ""
 
     private(set) var documentRoot: String = ""
 
@@ -54,7 +56,7 @@ final class AppSettings: ObservableObject {
         guard let data = try? Data(contentsOf: URL(fileURLWithPath: path)),
               let snap = try? JSONDecoder().decode(Snapshot.self, from: data)
         else {
-            host = "127.0.0.1"; port = 8080; workers = 2
+            host = "127.0.0.1"; port = 8080; workers = 0
             sqliteSoftHeapMB = 8
             debug = false; aiDebug = false; sandboxUnrestricted = false; sslSkipVerify = false
             nativeChromeMCPEnabled = false; nativeChromeMCPPort = 9223
@@ -109,6 +111,12 @@ final class AppSettings: ObservableObject {
         }
     }
 
+    func ensureStatusToken() {
+        if statusToken.isEmpty {
+            statusToken = Self.randomHex(bytes: 32)
+        }
+    }
+
     func regenerateJWT()        { jwtSecret = Self.randomHex(bytes: 32); save() }
     func regenerateActivation() { activationKey = Self.randomHex(bytes: 16); save() }
 
@@ -130,6 +138,8 @@ final class AppSettings: ObservableObject {
             "JWT_SECRET": jwtSecret,
             "ACTIVATION_KEY": activationKey,
         ]
+        ensureStatusToken()
+        env["STATUS_TOKEN"] = statusToken
         if nativeChromeMCPEnabled {
             ensureNativeChromeMCPToken()
             env["NATIVE_CHROME_MCP_ENABLED"] = "1"

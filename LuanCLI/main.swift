@@ -7,7 +7,7 @@ struct Config {
     var documentRoot: String = ""
     var host: String = "127.0.0.1"
     var port: Int = 8080
-    var workers: Int = 2
+    var workers: Int = 0
     var sqliteSoftHeapMB: Int = 8
     var debug: Bool = false
     var aiDebug: Bool = false
@@ -40,7 +40,7 @@ func printUsage() {
           --script <path>          Execute a Lua script and exit
           --host <addr>            Bind address (default: 127.0.0.1)
       -p, --port <port>            HTTP port (default: 8080)
-          --workers <n>            Worker threads (default: 2)
+          --workers <n>            Worker threads (default: 0)
           --sqlite-soft-heap-mb <n> SQLite soft heap limit in MB (default: 8)
           --debug                  Enable debug logging
           --ai-debug               Enable AI debug logging
@@ -183,29 +183,31 @@ if !config.documentRoot.hasPrefix("/") {
     config.documentRoot = FileManager.default.currentDirectoryPath + "/" + config.documentRoot
 }
 
-// Merge with .luanmac.json (CLI args override saved values)
+// Merge with .luanmac.json (CLI args override saved values). Environment
+// secrets are accepted from the SwiftUI parent so unsaved UI settings still
+// apply to the child process without exposing them in process arguments.
 let saved = loadSavedConfig(documentRoot: config.documentRoot)
 let savedInt: (String) -> Int? = { key in (saved?[key] as? NSNumber)?.intValue }
 let savedStr: (String) -> String? = { key in saved?[key] as? String }
+let inheritedEnv = ProcessInfo.processInfo.environment
 
-// Auto-generate secrets if empty, persist to .luanmac.json
+func mergeSecret(_ current: String, envKey: String, savedKey: String) -> String {
+    if !current.isEmpty { return current }
+    if let value = inheritedEnv[envKey], !value.isEmpty { return value }
+    if let value = savedStr(savedKey), !value.isEmpty { return value }
+    return randomHex(bytes: 32)
+}
+
 var dirty = false
-if config.jwtSecret.isEmpty {
-    config.jwtSecret = savedStr("jwtSecret") ?? randomHex(bytes: 32)
-    if saved?["jwtSecret"] == nil { dirty = true }
-}
-if config.activationKey.isEmpty {
-    config.activationKey = savedStr("activationKey") ?? randomHex(bytes: 32)
-    if saved?["activationKey"] == nil { dirty = true }
-}
-if config.wsToken.isEmpty {
-    config.wsToken = savedStr("wsToken") ?? randomHex(bytes: 32)
-    if saved?["wsToken"] == nil { dirty = true }
-}
-if config.purgeToken.isEmpty {
-    config.purgeToken = savedStr("purgeToken") ?? randomHex(bytes: 32)
-    if saved?["purgeToken"] == nil { dirty = true }
-}
+let originalSecrets = (config.jwtSecret, config.activationKey, config.wsToken, config.purgeToken)
+config.jwtSecret = mergeSecret(config.jwtSecret, envKey: "JWT_SECRET", savedKey: "jwtSecret")
+config.activationKey = mergeSecret(config.activationKey, envKey: "ACTIVATION_KEY", savedKey: "activationKey")
+config.wsToken = mergeSecret(config.wsToken, envKey: "WS_TOKEN", savedKey: "wsToken")
+config.purgeToken = mergeSecret(config.purgeToken, envKey: "PURGE_TOKEN", savedKey: "purgeToken")
+dirty = originalSecrets.0 != config.jwtSecret || originalSecrets.1 != config.activationKey
+    || originalSecrets.2 != config.wsToken || originalSecrets.3 != config.purgeToken
+
+// Persist generated or inherited secrets so subsequent launches remain stable.
 if dirty {
     let cfgPath = (config.documentRoot as NSString).appendingPathComponent(".luanmac.json")
     var cfg: [String: Any] = saved ?? [:]
@@ -254,15 +256,11 @@ if config.aiDebug { setEnv("AI_DEBUG", "1") }
 if config.sandboxUnrestricted { setEnv("SANDBOX_UNRESTRICTED", "1") }
 if config.sslSkipVerify { setEnv("SSL_SKIP_VERIFY", "1") }
 
-// Print startup info
+// Print non-sensitive startup info
 print("luan runtime")
 print("  document root: \(config.documentRoot)")
 print("  listening on:  \(config.host):\(config.port)")
 print("  workers:       \(config.workers)")
-print("  JWT_SECRET:    \(config.jwtSecret)")
-print("  ACTIVATION_KEY:\(config.activationKey)")
-print("  WS_TOKEN:      \(config.wsToken)")
-print("  PURGE_TOKEN:   \(config.purgeToken)")
 
 // Find runtime directory (plain Lua tree; entry core.lua from build.sh).
 let exeDir = (CommandLine.arguments[0] as NSString).deletingLastPathComponent
@@ -326,19 +324,21 @@ if runtimeDir.isEmpty {
 }
 print("  runtime dir:   \(runtimeDir)")
 
-// Create and run LuaBridge
+// Create and run LuaBridge inside this CLI child process. The SwiftUI app
+// manages this process and never shares its Lua state or libevent bases.
 let bridge = LuaBridge()
 
-// CLI: output logs to stderr instead of NSLog
+// CLI: output logs to stderr instead of NSLog.
 LuanSetLogToStderr(true)
-// Also wire outputHandler so load/runtime errors (LuaBridge emit) always show on CLI.
-// Without this, !! lua 加载/运行时错误 only went to a nil handler and looked like a silent exit.
 bridge.outputHandler = { chunk in
     fputs(chunk, stderr)
     fflush(stderr)
 }
 
-// Signal handling for graceful shutdown
+// Metrics are exposed through the authenticated Lua /_status endpoint.
+// Keep process sampling inside the CLI child and out of stderr/log parsing.
+
+// Signal handling for graceful shutdown.
 signal(SIGINT) { _ in
     fputs("\nReceived SIGINT, shutting down...\n", stderr)
     bridge.stop()
@@ -348,31 +348,24 @@ signal(SIGTERM) { _ in
     bridge.stop()
 }
 
+let serviceEnv: [String: String] = [
+    "SERVICE_HOST": config.host,
+    "SERVICE_PORT": String(config.port),
+    "SERVICE_WORKERS": String(config.workers),
+    "SQLITE_SOFT_HEAP_MB": String(config.sqliteSoftHeapMB),
+    "JWT_SECRET": config.jwtSecret,
+    "ACTIVATION_KEY": config.activationKey,
+    "WS_TOKEN": config.wsToken,
+    "PURGE_TOKEN": config.purgeToken,
+    "STATUS_TOKEN": inheritedEnv["STATUS_TOKEN"] ?? "",
+]
 if config.execCode.isEmpty && config.execScript.isEmpty {
-    bridge.run(withDocumentRoot: config.documentRoot, env: [
-        "SERVICE_HOST": config.host,
-        "SERVICE_PORT": String(config.port),
-        "SERVICE_WORKERS": String(config.workers),
-        "SQLITE_SOFT_HEAP_MB": String(config.sqliteSoftHeapMB),
-        "JWT_SECRET": config.jwtSecret,
-        "ACTIVATION_KEY": config.activationKey,
-        "WS_TOKEN": config.wsToken,
-        "PURGE_TOKEN": config.purgeToken,
-    ])
+    bridge.run(withDocumentRoot: config.documentRoot, env: serviceEnv)
 } else {
-    bridge.runScript(withDocumentRoot: config.documentRoot, env: [
-        "SERVICE_HOST": config.host,
-        "SERVICE_PORT": String(config.port),
-        "SERVICE_WORKERS": String(config.workers),
-        "SQLITE_SOFT_HEAP_MB": String(config.sqliteSoftHeapMB),
-        "JWT_SECRET": config.jwtSecret,
-        "ACTIVATION_KEY": config.activationKey,
-        "WS_TOKEN": config.wsToken,
-        "PURGE_TOKEN": config.purgeToken,
-        "LUAN_EXEC_CODE": config.execCode,
-        "LUAN_EXEC_SCRIPT": config.execScript,
-    ])
+    var scriptEnv = serviceEnv
+    scriptEnv["LUAN_EXEC_CODE"] = config.execCode
+    scriptEnv["LUAN_EXEC_SCRIPT"] = config.execScript
+    bridge.runScript(withDocumentRoot: config.documentRoot, env: scriptEnv)
 }
 
-// Cleanup
 print("luan runtime stopped.")

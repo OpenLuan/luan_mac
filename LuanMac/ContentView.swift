@@ -194,11 +194,6 @@ struct ContentView: View {
                     .font(.system(size: 16, weight: .semibold))
                 Text(isStopState ? L("native.action.stop") : L("native.action.start"))
                     .font(.system(size: 16, weight: .semibold))
-                if isStopState && runner.refCount > 1 {
-                    Text("(\(runner.refCount - 1))")
-                        .font(.system(size: 12))
-                        .opacity(0.7)
-                }
             }
             .frame(minWidth: 160, minHeight: 42, maxHeight: 42)
         }

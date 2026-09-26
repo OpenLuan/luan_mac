@@ -23,7 +23,7 @@ RUNTIME_DIR="${RUNTIME_DIR:-$PROJECT_ROOT/runtime}"
 
 PORT=8081
 HOST=127.0.0.1
-WORKERS=2
+WORKERS=0
 BG=0
 DEBUG=1
 # Constrained sandbox by default (no host bash / DOCROOT escape for root).
@@ -50,7 +50,7 @@ Usage: run_cli_temp.sh [options]
 
   --port <n>         HTTP port (default: 8081)
   --host <addr>      Bind address (default: 127.0.0.1)
-  --workers <n>      Worker threads (default: 2)
+  --workers <n>      Worker threads (default: 0)
   --bg               Background (pid in $DOCROOT/cli.pid, wait until HTTP ready)
   --no-debug         Do not pass --debug
   --unrestricted     Pass --sandbox-unrestricted (root may use bash / escape DOCROOT)
