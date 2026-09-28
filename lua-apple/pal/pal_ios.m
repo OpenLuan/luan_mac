@@ -474,15 +474,6 @@ void pal_bridge_set_dns_port(int port) {
     evdns_base_clear_nameservers_and_suspend(dns_base);
     evdns_base_nameserver_ip_add(dns_base, dns_server);
     evdns_base_resume(dns_base);
-
-    for (int i = 0; i < event_mgr_worker_count(); i++) {
-        struct evdns_base *worker_dns = event_mgr_worker_dnsbase(i);
-        if (worker_dns) {
-            evdns_base_clear_nameservers_and_suspend(worker_dns);
-            evdns_base_nameserver_ip_add(worker_dns, dns_server);
-            evdns_base_resume(worker_dns);
-        }
-    }
 }
 
 // ---------------------------------------------------------------------------

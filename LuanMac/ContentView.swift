@@ -430,19 +430,6 @@ struct SettingsSheet: View {
                 .toggleStyle(.checkbox)
                 .disabled(!canEdit)
 
-                HStack {
-                    Text("Workers")
-                        .frame(width: 80, alignment: .leading)
-                        .foregroundStyle(.secondary)
-                    Slider(value: Binding(
-                        get: { Double(settings.workers) },
-                        set: { settings.workers = Int($0) }
-                    ), in: 0...8, step: 1)
-                    Text(settings.workers == 0 ? L("native.common.disabled") : "\(settings.workers)")
-                        .frame(width: 30, alignment: .trailing)
-                        .monospacedDigit()
-                }
-                .disabled(!canEdit)
 
                 HStack(spacing: 8) {
                     Button {

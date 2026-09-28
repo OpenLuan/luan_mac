@@ -7,7 +7,6 @@ struct Config {
     var documentRoot: String = ""
     var host: String = "127.0.0.1"
     var port: Int = 8080
-    var workers: Int = 0
     var sqliteSoftHeapMB: Int = 8
     var debug: Bool = false
     var aiDebug: Bool = false
@@ -40,7 +39,6 @@ func printUsage() {
           --script <path>          Execute a Lua script and exit
           --host <addr>            Bind address (default: 127.0.0.1)
       -p, --port <port>            HTTP port (default: 8080)
-          --workers <n>            Worker threads (default: 0)
           --sqlite-soft-heap-mb <n> SQLite soft heap limit in MB (default: 8)
           --debug                  Enable debug logging
           --ai-debug               Enable AI debug logging
@@ -90,10 +88,6 @@ func parseArgs() -> Config? {
             i += 1
             guard i < args.count else { fputs("error: \(arg) requires a value\n", stderr); return nil }
             config.host = args[i]
-        case "--workers":
-            i += 1
-            guard i < args.count, let w = Int(args[i]) else { fputs("error: \(arg) requires a numeric value\n", stderr); return nil }
-            config.workers = w
         case "--sqlite-soft-heap-mb":
             i += 1
             guard i < args.count, let mb = Int(args[i]) else { fputs("error: \(arg) requires a numeric value\n", stderr); return nil }
@@ -216,19 +210,15 @@ if dirty {
     cfg["wsToken"] = config.wsToken
     cfg["purgeToken"] = config.purgeToken
     cfg["port"] = config.port
-    cfg["workers"] = config.workers
     if let data = try? JSONSerialization.data(withJSONObject: cfg, options: .prettyPrinted) {
         try? data.write(to: URL(fileURLWithPath: cfgPath))
     }
 }
 
-// Read port/workers from saved config only if not explicitly set via CLI
+// Read port from saved config only if not explicitly set via CLI
 // (parseArgs uses defaults, so check if saved has values)
 if let savedPort = savedInt("port"), CommandLine.arguments.firstIndex(where: { $0 == "-p" || $0 == "--port" }) == nil {
     config.port = savedPort
-}
-if let savedWorkers = savedInt("workers"), CommandLine.arguments.firstIndex(where: { $0 == "--workers" }) == nil {
-    config.workers = savedWorkers
 }
 
 // Set environment variables
@@ -243,7 +233,6 @@ if !config.execScript.isEmpty {
 }
 setEnv("SERVICE_HOST", config.host)
 setEnv("SERVICE_PORT", String(config.port))
-setEnv("SERVICE_WORKERS", String(config.workers))
 setEnv("SQLITE_SOFT_HEAP_MB", String(config.sqliteSoftHeapMB))
 setEnv("HTTP_USING_CORE", "true")
 setEnv("HTTPD_USING_CORE", "true")
@@ -260,7 +249,6 @@ if config.sslSkipVerify { setEnv("SSL_SKIP_VERIFY", "1") }
 print("luan runtime")
 print("  document root: \(config.documentRoot)")
 print("  listening on:  \(config.host):\(config.port)")
-print("  workers:       \(config.workers)")
 
 // Find runtime directory (plain Lua tree; entry core.lua from build.sh).
 let exeDir = (CommandLine.arguments[0] as NSString).deletingLastPathComponent
@@ -351,7 +339,6 @@ signal(SIGTERM) { _ in
 let serviceEnv: [String: String] = [
     "SERVICE_HOST": config.host,
     "SERVICE_PORT": String(config.port),
-    "SERVICE_WORKERS": String(config.workers),
     "SQLITE_SOFT_HEAP_MB": String(config.sqliteSoftHeapMB),
     "JWT_SECRET": config.jwtSecret,
     "ACTIVATION_KEY": config.activationKey,

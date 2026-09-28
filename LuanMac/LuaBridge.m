@@ -126,14 +126,7 @@ static int luan_lua_print(lua_State *L) {
              tm_info.tm_hour, tm_info.tm_min, tm_info.tm_sec,
              (int)(tv.tv_usec / 1000));
 
-    BOOL trace_worker = event_mgr_worker_count() > 0;
-    NSString *line;
-    if (trace_worker) {
-        line = [NSString stringWithFormat:@"[%s] [worker=%d] [lua] %@\n",
-                ts, event_mgr_current_worker_id(), msg];
-    } else {
-        line = [NSString stringWithFormat:@"[%s] [lua] %@\n", ts, msg];
-    }
+    NSString *line = [NSString stringWithFormat:@"[%s] [lua] %@\n", ts, msg];
     luan_emit(line);
     return 0;
     }
@@ -194,11 +187,7 @@ static int luan_lua_print(lua_State *L) {
 }
 
 - (void)_runOnEventQueueWithDocumentRoot:(NSString *)documentRoot {
-    // 上一次 run 退出后, worker bases 已在 event_mgr_loop_cleanup 里释放.
-    // 第二次 run 必须重新 init 才能拿到新的 base.
     event_mgr_init();
-    // Worker threads are now initialized by core.lua (via fan.workers_init)
-    // reading SERVICE_WORKERS env — no need to call event_mgr_workers_init here.
 
     // Process-wide SQLite soft heap limit. 0 disables the limit; any positive
     // value is interpreted as megabytes. Applies to every sqlite3.open() that
@@ -216,15 +205,9 @@ static int luan_lua_print(lua_State *L) {
     // 诊断: dump evdns 状态
     struct evdns_base *db = event_mgr_dnsbase();
     int ns_count = db ? evdns_base_count_nameservers(db) : -1;
-    NSString *dnsMsg = [NSString stringWithFormat:@"[evdns] main dnsbase=%p, nameservers=%d, workers=%d\n",
-                        db, ns_count, event_mgr_worker_count()];
+    NSString *dnsMsg = [NSString stringWithFormat:@"[evdns] dnsbase=%p, nameservers=%d\n",
+                        db, ns_count];
     if (self.outputHandler) self.outputHandler(dnsMsg);
-    for (int i = 0; i < event_mgr_worker_count(); i++) {
-        struct evdns_base *wdb = event_mgr_worker_dnsbase(i);
-        int wn = wdb ? evdns_base_count_nameservers(wdb) : -1;
-        NSString *m = [NSString stringWithFormat:@"[evdns] worker[%d] dnsbase=%p, nameservers=%d\n", i, wdb, wn];
-        if (self.outputHandler) self.outputHandler(m);
-    }
 
     NSFileManager *fm = [NSFileManager defaultManager];
 
@@ -431,7 +414,7 @@ static int luan_lua_print(lua_State *L) {
 
     // ---- cleanup ----
     // fan.loop / event_mgr_loop 已返回 (event_mgr_break 触发). 内部已完成
-    // cleanup_signals / cleanup_dnsbase / workers_stop_threads (event_mgr.c:338-344).
+    // cleanup_signals / cleanup_dnsbase (event_mgr.c).
     //
     // decrRef 当 refcount 降到 0 时会自动调 lua_close, 所以不要再额外 lua_close,
     // 否则 LuaLockFinalState 里 free(sd) 就是 double-free → crash.
@@ -440,8 +423,7 @@ static int luan_lua_print(lua_State *L) {
     decrRef(L);
     // 此时 lua_close 已在 decrRef 内完成, __gc 已跑完.
 
-    // 释放 worker bases + main base. 第二次 start 时 event_mgr_init / workers_init
-    // 会重新建立.
+    // 释放 event bases. 第二次 start 时 event_mgr_init 会重新建立.
     event_mgr_loop_cleanup();
     LuanCloseLogFile();
 }

@@ -180,7 +180,6 @@ final class LuaRunner: ObservableObject {
             "--document-root", dir,
             "--host", host,
             "--port", String(port),
-            "--workers", env["SERVICE_WORKERS"] ?? "0",
             "--sqlite-soft-heap-mb", env["SQLITE_SOFT_HEAP_MB"] ?? "0",
         ]
         var childEnv = ProcessInfo.processInfo.environment

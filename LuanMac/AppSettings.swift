@@ -6,7 +6,6 @@ import CryptoKit
 final class AppSettings: ObservableObject {
     @Published var host: String = "127.0.0.1"
     @Published var port: Int = 8080
-    @Published var workers: Int = 0
     @Published var sqliteSoftHeapMB: Int = 8
     @Published var debug: Bool = false
     @Published var aiDebug: Bool = false
@@ -34,7 +33,6 @@ final class AppSettings: ObservableObject {
     private struct Snapshot: Codable {
         var host: String
         var port: Int
-        var workers: Int
         var sqliteSoftHeapMB: Int?
         var debug: Bool
         var aiDebug: Bool
@@ -56,7 +54,7 @@ final class AppSettings: ObservableObject {
         guard let data = try? Data(contentsOf: URL(fileURLWithPath: path)),
               let snap = try? JSONDecoder().decode(Snapshot.self, from: data)
         else {
-            host = "127.0.0.1"; port = 8080; workers = 0
+            host = "127.0.0.1"; port = 8080
             sqliteSoftHeapMB = 8
             debug = false; aiDebug = false; sandboxUnrestricted = false; sslSkipVerify = false
             nativeChromeMCPEnabled = false; nativeChromeMCPPort = 9223
@@ -66,7 +64,6 @@ final class AppSettings: ObservableObject {
         }
         host = snap.host
         port = snap.port
-        workers = snap.workers
         sqliteSoftHeapMB = snap.sqliteSoftHeapMB ?? 8
         debug = snap.debug
         aiDebug = snap.aiDebug
@@ -81,7 +78,7 @@ final class AppSettings: ObservableObject {
 
     func save() {
         guard !documentRoot.isEmpty else { return }
-        let snap = Snapshot(host: host, port: port, workers: workers,
+        let snap = Snapshot(host: host, port: port,
                             sqliteSoftHeapMB: sqliteSoftHeapMB,
                             debug: debug, aiDebug: aiDebug,
                             sandboxUnrestricted: sandboxUnrestricted,
@@ -125,7 +122,6 @@ final class AppSettings: ObservableObject {
         var env = [
             "SERVICE_HOST": host,
             "SERVICE_PORT": String(port),
-            "SERVICE_WORKERS": String(workers),
             "SQLITE_SOFT_HEAP_MB": String(sqliteSoftHeapMB),
             "SANDBOX_UNRESTRICTED": sandboxUnrestricted ? "1" : "0",
             "SSL_SKIP_VERIFY": sslSkipVerify ? "1" : "0",
@@ -158,7 +154,7 @@ final class AppSettings: ObservableObject {
         }
 
         var args = ["luan", "--document-root", shellQuote((documentRoot as NSString).expandingTildeInPath),
-                    "--host", shellQuote(host), "--port", String(port), "--workers", String(workers),
+                    "--host", shellQuote(host), "--port", String(port),
                     "--sqlite-soft-heap-mb", String(sqliteSoftHeapMB)]
         if debug { args.append("--debug") }
         if aiDebug { args.append("--ai-debug") }

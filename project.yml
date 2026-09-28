@@ -48,7 +48,6 @@ settings:
       -DLUA_COMPAT_5_1
       -DLUA_COMPAT_5_2
       -DLUA_COMPAT_FLOATSTRING
-      -DLUA_FLOORN2I=1
       -DHAVE_CONFIG_H
       -DLUA_USER_H="<luauser.h>"
       -DOPENSSL_NO_MD2
