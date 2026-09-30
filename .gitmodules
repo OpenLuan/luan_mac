@@ -21,7 +21,3 @@
 	path = luan
 	url = https://github.com/OpenLuan/luan.git
 	branch = main
-[submodule "webase"]
-	path = webase
-	url = https://github.com/luafan/webase.git
-	branch = master

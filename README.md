@@ -10,8 +10,7 @@ macOS host for [Luan](https://github.com/OpenLuan) — embeds Lua 5.3.3, [luafan
 |------|------|
 | `LuanMac/` | SwiftUI app + ObjC Lua bridge |
 | `LuanCLI/` | `luan` CLI tool |
-| `luan/` | **git submodule** → LUAN source and shared runtime logic |
-| `webase/` | **git submodule** → webase source embedded by the Linux Luan image |
+| `luan/` | **git submodule** → Luan source, shared runtime logic, and curlimp native binding |
 | `lua-apple/` | Native stack (Lua, libevent, utlua, PAL, …) |
 | `lua-apple/luafan2/` | **git submodule** → luafan2 LuaFan v2 runtime |
 | `lua-apple/libevent/` | **git submodule** → libevent (`release-2.1.12-stable`) |
@@ -63,7 +62,7 @@ See `.gitmodules`:
 
 Other deps are vendored with upstream LICENSE files and pin notes in `lua-apple/THIRD_PARTY.md`.
 
-To bump LUAN or webase, update the checkout under `luan/` or `webase/`, verify the generated runtime, then commit only the relevant submodule pointer in this repository. Pushes are intentionally separate from this build integration.
+To bump LUAN, update the checkout under `luan/`, verify the generated runtime, then commit only the relevant submodule pointer in this repository. The webase framework is pinned through `lua-apple/luafan2`. Pushes are intentionally separate from this build integration.
 
 ## Notes
 
