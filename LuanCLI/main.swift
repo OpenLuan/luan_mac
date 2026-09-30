@@ -1,5 +1,32 @@
 import Foundation
 import Security
+import Darwin
+
+private var documentRootLockFD: Int32 = -1
+
+private enum DocumentRootLockResult {
+    case acquired
+    case alreadyRunning
+    case failed(String)
+}
+
+private func acquireDocumentRootLock(_ documentRoot: String) -> DocumentRootLockResult {
+    let lockPath = (documentRoot as NSString).appendingPathComponent(".luan.lock")
+    let fd = Darwin.open(lockPath, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR)
+    guard fd >= 0 else {
+        return .failed(String(cString: strerror(errno)))
+    }
+    if flock(fd, LOCK_EX | LOCK_NB) != 0 {
+        let lockError = errno
+        Darwin.close(fd)
+        if lockError == EWOULDBLOCK || lockError == EAGAIN {
+            return .alreadyRunning
+        }
+        return .failed(String(cString: strerror(lockError)))
+    }
+    documentRootLockFD = fd
+    return .acquired
+}
 
 // A closed parent/Xcode pipe must not terminate this host process with SIGPIPE.
 // Individual writes still report EPIPE to their callers.
@@ -180,6 +207,17 @@ if config.documentRoot.hasPrefix("~") {
 if !config.documentRoot.hasPrefix("/") {
     config.documentRoot = FileManager.default.currentDirectoryPath + "/" + config.documentRoot
 }
+try? FileManager.default.createDirectory(atPath: config.documentRoot, withIntermediateDirectories: true)
+switch acquireDocumentRootLock(config.documentRoot) {
+case .acquired:
+    break
+case .alreadyRunning:
+    fputs("!! LUAN_ALREADY_RUNNING\n", stderr)
+    exit(73)
+case .failed(let message):
+    fputs("!! cannot lock document root: \(message)\n", stderr)
+    exit(74)
+}
 
 // Merge with .luanmac.json (CLI args override saved values). Environment
 // secrets are accepted from the SwiftUI parent so unsaved UI settings still
@@ -321,6 +359,20 @@ print("  runtime dir:   \(runtimeDir)")
 // manages this process and never shares its Lua state or libevent bases.
 let bridge = LuaBridge()
 
+// A GUI-managed CLI exits when its parent closes the keepalive pipe. The
+// parent-owned write end receives EOF after a crash or SIGKILL.
+let parentPipeEnabled = inheritedEnv["LUAN_PARENT_PIPE"] == "1"
+if parentPipeEnabled {
+    let standardInput = FileHandle.standardInput
+    standardInput.readabilityHandler = { handle in
+        let data = handle.availableData
+        if data.isEmpty {
+            handle.readabilityHandler = nil
+            bridge.stop()
+        }
+    }
+}
+
 // CLI: output logs to stderr instead of NSLog.
 LuanSetLogToStderr(true)
 bridge.outputHandler = { chunk in
@@ -358,6 +410,13 @@ if config.execCode.isEmpty && config.execScript.isEmpty {
     scriptEnv["LUAN_EXEC_CODE"] = config.execCode
     scriptEnv["LUAN_EXEC_SCRIPT"] = config.execScript
     bridge.runScript(withDocumentRoot: config.documentRoot, env: scriptEnv)
+}
+if parentPipeEnabled {
+    FileHandle.standardInput.readabilityHandler = nil
+}
+if documentRootLockFD >= 0 {
+    Darwin.close(documentRootLockFD)
+    documentRootLockFD = -1
 }
 
 print("luan runtime stopped.")

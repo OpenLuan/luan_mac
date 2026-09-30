@@ -12,6 +12,8 @@
 "native.status.stopping" = "停止中…";
 "native.status.failed" = "错误";
 "native.status.startFailed" = "服务启动失败";
+"native.status.alreadyRunning" = "此工作区已有服务在运行";
+"native.status.lockFailed" = "无法访问工作区锁文件";
 
 "native.section.general" = "通用";
 "native.section.workspace" = "工作目录";

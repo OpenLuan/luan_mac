@@ -2,6 +2,27 @@ import Foundation
 import Darwin
 import Combine
 
+private enum DocumentRootLockResult {
+    case acquired
+    case alreadyRunning
+    case failed(String)
+}
+
+private func acquireDocumentRootLock(_ documentRoot: String) -> DocumentRootLockResult {
+    let lockPath = (documentRoot as NSString).appendingPathComponent(".luan.lock")
+    let fd = Darwin.open(lockPath, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR)
+    guard fd >= 0 else { return .failed(String(cString: strerror(errno))) }
+    if flock(fd, LOCK_EX | LOCK_NB) != 0 {
+        let lockError = errno
+        Darwin.close(fd)
+        if lockError == EWOULDBLOCK || lockError == EAGAIN { return .alreadyRunning }
+        return .failed(String(cString: strerror(lockError)))
+    }
+    _ = flock(fd, LOCK_UN)
+    Darwin.close(fd)
+    return .acquired
+}
+
 /// 服务生命周期. stop 后会等 cleanup 完成再回到 idle, 所以可以反复 启动 / 停止.
 enum ServiceState: Equatable {
     case idle           // 未启动 / 已干净停止, 可启动
@@ -27,11 +48,18 @@ final class LuaRunner: ObservableObject {
     @Published private(set) var refCount: Int = 0
 
     private var process: Process?
+    private var parentPipe: Pipe?
     private var outputPipe: Pipe?
     private var errorPipe: Pipe?
     private var healthcheckTask: Task<Void, Never>?
     private var metricsTask: Task<Void, Never>?
     private var stopTimeoutTask: Task<Void, Never>?
+
+    private func closeParentPipe() {
+        guard let parentPipe else { return }
+        try? parentPipe.fileHandleForWriting.close()
+        self.parentPipe = nil
+    }
 
     // Startup diagnostics captured from the luan child process. Consumed after
     // the process exits to surface .failed(msg) when healthcheck never succeeds.
@@ -166,6 +194,20 @@ final class LuaRunner: ObservableObject {
         let port = Int(env["SERVICE_PORT"] ?? "") ?? 0
         logPath = dir + "/luan.log"
 
+        try? FileManager.default.createDirectory(atPath: dir, withIntermediateDirectories: true)
+        switch acquireDocumentRootLock(dir) {
+        case .acquired:
+            break
+        case .alreadyRunning:
+            state = .failed(String(localized: "native.status.alreadyRunning"))
+            closeCaptureWindow()
+            return
+        case .failed(let message):
+            state = .failed(String(localized: "native.status.lockFailed") + ": \(message)")
+            closeCaptureWindow()
+            return
+        }
+
         guard let executable = Bundle.main.executableURL?.deletingLastPathComponent()
             .appendingPathComponent("luan"),
               FileManager.default.isExecutableFile(atPath: executable.path) else {
@@ -184,8 +226,12 @@ final class LuaRunner: ObservableObject {
         ]
         var childEnv = ProcessInfo.processInfo.environment
         for (key, value) in env { childEnv[key] = value }
+        childEnv["LUAN_PARENT_PIPE"] = "1"
         child.environment = childEnv
 
+        let parentPipe = Pipe()
+        self.parentPipe = parentPipe
+        child.standardInput = parentPipe
         let output = Pipe()
         let errors = Pipe()
         outputPipe = output
@@ -213,6 +259,7 @@ final class LuaRunner: ObservableObject {
             errors.fileHandleForReading.readabilityHandler = nil
             outputPipe = nil
             errorPipe = nil
+            closeParentPipe()
             state = .failed("failed to start luan CLI: \(error.localizedDescription)")
             closeCaptureWindow()
             return
@@ -227,6 +274,7 @@ final class LuaRunner: ObservableObject {
         state = .stopping
         stopHealthcheck()
         closeCaptureWindow()
+        closeParentPipe()
         child.terminate()
         stopTimeoutTask?.cancel()
         stopTimeoutTask = Task { @MainActor [weak self, weak child] in
@@ -245,6 +293,7 @@ final class LuaRunner: ObservableObject {
         stopHealthcheck()
         stopMetricsSampling()
         closeCaptureWindow()
+        closeParentPipe()
         child.terminate()
         usleep(250_000)
         if child.isRunning {
@@ -286,6 +335,7 @@ final class LuaRunner: ObservableObject {
         errorPipe?.fileHandleForReading.readabilityHandler = nil
         outputPipe = nil
         errorPipe = nil
+        closeParentPipe()
         process = nil
         stopTimeoutTask?.cancel()
         stopTimeoutTask = nil
@@ -296,7 +346,11 @@ final class LuaRunner: ObservableObject {
         case .stopping:
             state = .idle
         case .starting:
-            state = .failed(diag ?? String(localized: "native.status.startFailed"))
+            if child.terminationStatus == 73 || diag?.contains("LUAN_ALREADY_RUNNING") == true {
+                state = .failed(String(localized: "native.status.alreadyRunning"))
+            } else {
+                state = .failed(diag ?? String(localized: "native.status.startFailed"))
+            }
         case .running:
             state = child.terminationStatus == 0 ? .idle : .failed(diag ?? "luan exited with status \(child.terminationStatus)")
         default:

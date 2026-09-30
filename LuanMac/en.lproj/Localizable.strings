@@ -12,6 +12,8 @@
 "native.status.stopping" = "Stopping…";
 "native.status.failed" = "Error";
 "native.status.startFailed" = "Service failed to start";
+"native.status.alreadyRunning" = "A service is already running for this workspace";
+"native.status.lockFailed" = "Cannot access the workspace lock";
 
 "native.section.general" = "General";
 "native.section.workspace" = "Workspace";
