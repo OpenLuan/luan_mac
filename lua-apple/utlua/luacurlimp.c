@@ -1,18 +1,13 @@
 /*
  * luacurlimp.c - Lua binding for curl-impersonate (libcurl-impersonate)
  *
- * Coroutine-friendly: uses curl_multi + libevent (event_mgr_base from luafan)
- * so a request yields the calling Lua thread and resumes when done,
- * exactly like fan.http in luafan's http.c.  Multiple concurrent requests
- * are multiplexed on one CURLM without blocking the event loop.
+ * Coroutine-friendly curl_multi integration on LuaFan v2's libevent loop.
  *
  * Usage (inside fan.loop / webase):
  *   local ci = require("curlimp")
  *   local ok, resp = ci.request{ url="https://...", target="chrome150", timeout=30 }
- *   -- resp.status / resp.headers / resp.body / resp.error
  *
- * Requires: fan (luafan) loaded first, so event_mgr_base() / FAN_RESUME
- *           / utlua_mainthread are available.
+ * The v2 loop and coroutine APIs are the only runtime boundary used here.
  * License: MIT
  */
 
@@ -26,10 +21,10 @@
 #include <string.h>
 #include <stdlib.h>
 
-/* Provided by luafan fan.so */
-extern struct event_base *event_mgr_base(void);
-extern lua_State *utlua_mainthread(lua_State *L);
-extern int (*FAN_RESUME)(lua_State *co, lua_State *from, int count);
+#include "runtime/loop.h"
+#include "runtime/coro.h"
+
+/* Provided by the LuaFan v2 runtime. */
 
 /* extra API of libcurl-impersonate */
 extern CURLcode curl_easy_impersonate(CURL *data, const char *target, int default_headers);
@@ -164,7 +159,7 @@ static void ci_setsock(CI_Sock *f, curl_socket_t s, CURL *e, int act, void *data
                (act & CURL_POLL_OUT ? EV_WRITE : 0) | EV_PERSIST;
     f->fd = s; f->evset = 1;
     if (f->ev) event_free(f->ev);
-    f->ev = event_new(event_mgr_base(), s, kind, ci_sock_cb, data);
+    f->ev = event_new(fan_loop_current_base(), s, kind, ci_sock_cb, data);
     event_add(f->ev, NULL);
 }
 static void ci_addsock(curl_socket_t s, CURL *easy, int action, void *data) {
@@ -211,7 +206,7 @@ static void ci_resume_cb(int fd, short kind, void *ud) {
     event_free(info->ev);
 
     /* co stack already has (ok, resp) pushed. */
-    FAN_RESUME(info->co, NULL, 2);
+    fan_coro_resume(info->co, 2);
     lua_lock(info->mt);
     luaL_unref(info->mt, LUA_REGISTRYINDEX, info->coref);
     lua_unlock(info->mt);
@@ -274,7 +269,7 @@ static void ci_complete(CI_Conn *c) {
     info->co = c->co;
     info->mt = c->mainthread;
     info->coref = c->coref;
-    info->ev = evtimer_new(event_mgr_base(), ci_resume_cb, info);
+    info->ev = evtimer_new(fan_loop_current_base(), ci_resume_cb, info);
     struct timeval tv = {0, 1};
     event_add(info->ev, &tv);
 }
@@ -320,8 +315,8 @@ static int l_request(lua_State *L) {
         curl_multi_setopt(ci_multi, CURLMOPT_TIMERFUNCTION, multi_timer_cb);
         curl_multi_setopt(ci_multi, CURLMOPT_TIMERDATA, NULL);
 
-        ci_timeout_event = evtimer_new(event_mgr_base(), ci_timeout_cb, NULL);
-        ci_check_event   = evtimer_new(event_mgr_base(), ci_check_cb, NULL);
+        ci_timeout_event = evtimer_new(fan_loop_current_base(), ci_timeout_cb, NULL);
+        ci_check_event   = evtimer_new(fan_loop_current_base(), ci_check_cb, NULL);
     }
 
     CI_Conn *c = (CI_Conn *)calloc(1, sizeof(CI_Conn));
@@ -407,12 +402,12 @@ static int l_request(lua_State *L) {
     lua_pop(L, 1);
 
     /* ---- remember the coroutine ---- */
-    c->mainthread = utlua_mainthread(L);
+    c->mainthread = fan_coro_main(L);
     c->co = L;
-    lua_lock(L);
+    lua_lock(c->mainthread);
     lua_pushthread(L);
-    c->coref = luaL_ref(L, LUA_REGISTRYINDEX);
-    lua_unlock(L);
+    c->coref = luaL_ref(c->mainthread, LUA_REGISTRYINDEX);
+    lua_unlock(c->mainthread);
 
     CURLMcode mrc = curl_multi_add_handle(ci_multi, c->easy);
     if (mrc != CURLM_OK) {

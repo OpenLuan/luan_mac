@@ -4,7 +4,7 @@
 //
 
 #include <stdio.h>
-#include "utlua.h"
+#include "lua.h"
 #include "lauxlib.h"
 #include "lualib.h"
 #include <stdlib.h>
@@ -14,7 +14,8 @@
 #include <ctype.h>
 #include <math.h>
 #include <sys/time.h>
-#include "event_mgr.h"
+#include "runtime/loop.h"
+#include "runtime/coro.h"
 
 #include "pal.h"
 
@@ -35,7 +36,6 @@ extern void decrRef(lua_State *L);
 #if !defined(__ANDROID__) || __ANDROID_API__ >= 28
 LUA_API int luaopen_iconv(lua_State *L);
 #endif
-LUA_API int luaopen_json(lua_State *L);
 LUA_API int luaopen_zlib(lua_State *L);
 
 static ptrdiff_t posrelat (ptrdiff_t pos, size_t len) {
@@ -141,27 +141,31 @@ static int str_replace(lua_State *L) {
     return 2;
 }
 
-LUA_API int luaopen_fan_fifo(lua_State *L);
-
-LUA_API int luaopen_fan_http_core(lua_State *L);
-
-LUA_API int luaopen_fan_httpd_core(lua_State *L);
-
-LUA_API int luaopen_fan_tcpd(lua_State *L);
-
-LUA_API int luaopen_fan_udpd(lua_State *L);
-
-LUA_API int luaopen_fan_udpd(lua_State *L);
-
-LUA_API int luaopen_fan_popen(lua_State *L);
-
 LUA_API int luaopen_fan(lua_State *L);
 
-LUA_API int luaopen_fan_objectbuf_core(lua_State *L);
+static int luaopen_fan_submodule(lua_State *L, const char *field) {
+    int n = luaopen_fan(L);
+    if (n < 1) return n;
+    lua_getfield(L, -1, field);
+    lua_remove(L, -2);
+    return 1;
+}
 
-LUA_API int luaopen_fan_stream_core(lua_State *L);
+static int luaopen_fan_popen(lua_State *L) {
+    return luaopen_fan_submodule(L, "popen");
+}
 
-LUALIB_API int luaopen_md4(lua_State *L);
+static int luaopen_fan_objectbuf_core(lua_State *L) {
+    return luaopen_fan_submodule(L, "objectbuf");
+}
+
+static int luaopen_fan_stream_core(lua_State *L) {
+    return luaopen_fan_submodule(L, "stream");
+}
+
+static int luaopen_json(lua_State *L) {
+    return luaopen_fan_submodule(L, "json");
+}
 LUALIB_API int luaopen_md5(lua_State *L);
 LUALIB_API int luaopen_sha1(lua_State *L);
 LUALIB_API int luaopen_sha224(lua_State *L);
@@ -176,8 +180,6 @@ LUALIB_API int luaopen_base64(lua_State*L);
 LUALIB_API int luaopen_brotli(lua_State *L);
 
 LUA_API int luaopen_curlimp(lua_State *L);
-
-LUA_API int luaopen_gcm(lua_State *L);
 
 LUA_API int luaopen_file_scan(lua_State *L);
 
@@ -223,11 +225,11 @@ static int lua_sqlite3_memory_used(lua_State *L){
 
 static int lua_libevent_event_base_get_num_events(lua_State *L){
     lua_newtable(L);
-    
-    lua_pushinteger(L, event_base_get_num_events(event_mgr_base(), EVENT_BASE_COUNT_ACTIVE));
+
+    lua_pushinteger(L, event_base_get_num_events(fan_loop_current_base(), EVENT_BASE_COUNT_ACTIVE));
     lua_setfield(L, -2, "count_active");
 
-    lua_pushinteger(L, event_base_get_num_events(event_mgr_base(), EVENT_BASE_COUNT_ADDED));
+    lua_pushinteger(L, event_base_get_num_events(fan_loop_current_base(), EVENT_BASE_COUNT_ADDED));
     lua_setfield(L, -2, "count_added");
 
     return 1;
@@ -252,19 +254,10 @@ lua_State* utlua_open_state(){
     lua_getfield(L, -1, "preload");
     
     static const luaL_Reg preloadedlibs[] = {
-        {"fan.http.core", luaopen_fan_http_core},
-        {"fan.httpd.core", luaopen_fan_httpd_core},
-        {"fan.tcpd", luaopen_fan_tcpd},
-        {"fan.udpd", luaopen_fan_udpd},
-        {"fan.popen", luaopen_fan_popen},
-        {"fan.fifo", luaopen_fan_fifo},
-
         {"fan", luaopen_fan},
         {"fan.objectbuf.core", luaopen_fan_objectbuf_core},
         {"fan.stream.core", luaopen_fan_stream_core},
-        {"fan.evdns", luaopen_fan_evdns},
 
-        /* Strict JSON (luafan/src/json.c). */
         {"json", luaopen_json},
         {"lfs", luaopen_lfs},
         {"zlib", luaopen_zlib},
@@ -278,7 +271,6 @@ lua_State* utlua_open_state(){
         {"icmp_sender", luaopen_icmp_sender},
         {"wildcard_matcher", luaopen_wildcard_matcher},
 
-        {"md4", luaopen_md4},
         {"md5", luaopen_md5},
         {"sha1", luaopen_sha1},
         {"sha224", luaopen_sha224},
@@ -295,7 +287,6 @@ lua_State* utlua_open_state(){
         {"openssl", luaopen_openssl},
         {"brotli", luaopen_brotli},
         {"curlimp", luaopen_curlimp},
-        {"gcm", luaopen_gcm},
         {"file_scan", luaopen_file_scan},
         {NULL, NULL}
     };
@@ -450,6 +441,7 @@ static struct ExtraInfo *utlua_extra_info_get(lua_State *mainthread) {
 }
 
 int caplua_resume(lua_State *co, lua_State *from, int count){
+    (void)from;
     int costatus = lua_status(co);
     if (costatus == LUA_YIELD) {
         // continue resume;
@@ -466,11 +458,11 @@ int caplua_resume(lua_State *co, lua_State *from, int count){
         return costatus;
     }
 
-    lua_State *ROOT = utlua_mainthread(co);
+    lua_State *ROOT = fan_coro_main(co);
     incrRef(ROOT);
 
 //    double startTime = timeout_gettime();
-    int status = lua_resume(co, from, count);
+    int status = fan_coro_resume(co, count);
 //    double stopTime = timeout_gettime();
 
     lua_lock(ROOT);

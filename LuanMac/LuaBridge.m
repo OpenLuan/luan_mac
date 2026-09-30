@@ -11,17 +11,18 @@
 #import "lauxlib.h"
 #import "lualib.h"
 #import "caplua.h"
-#import "event_mgr.h"
-#import "utlua.h"
+#include "runtime/loop.h"
+#include "runtime/coro.h"
+#import "luauser.h"
 #import "pal.h"
 #import <event2/dns.h>
 
 #import "LuaState.h"
 #import "LuaError.h"
 
-extern int (*FAN_RESUME)(lua_State *co, lua_State *from, int count);
 extern void incrRef(lua_State *L);
 extern void decrRef(lua_State *L);
+extern void fan_clear_lua_states(void);
 
 static int luan_process_metrics(lua_State *L);
 
@@ -38,19 +39,9 @@ extern _Atomic size_t lua_mem_total;
 // MARK: - runtime/ is a plain Lua tree from scripts/build.sh (entry: core.lua).
 
 
-// MARK: - resume hook
-// Always lua_resume; do NOT silently skip already-running / dead coroutines.
-// Mis-resuming the entry co (blocked in fan.loop) must surface as LuaError
-// ("cannot resume non-suspended coroutine") so callers can fix the root cause.
-// Background work belongs in service/ + dedicated coroutines, not hidden here.
-
-static int luan_resume(lua_State *co, lua_State *from, int count) {
-    int status = lua_resume(co, from, count);
-    if (status > LUA_YIELD) {
-        LuaError(co, 0);
-    }
-    return status;
-}
+// MARK: - LuaFan v2 coroutine boundary
+// All native callbacks resume through fan_coro_resume so the v2 lifetime
+// and Lua ABI rules remain centralized in the runtime.
 
 // MARK: - print 重定向: 加时间戳后追加到日志文件
 
@@ -145,11 +136,8 @@ static int luan_lua_print(lua_State *L) {
 + (void)initialize {
     static dispatch_once_t once;
     dispatch_once(&once, ^{
-        // Process-wide resume hook. libevent pthread support is enabled by
-        // luafan's event_mgr before any event_base is created.
-        // !!! Do not start event_mgr_loop here — the loop must run on the same
-        // serial queue as Lua so stop can cleanly tear it down.
-        utlua_set_resume(luan_resume);
+        // LuaFan v2 owns coroutine transitions through fan_coro_resume.
+        // The event loop is entered explicitly on the serialized Lua queue.
     });
 }
 
@@ -187,7 +175,7 @@ static int luan_lua_print(lua_State *L) {
 }
 
 - (void)_runOnEventQueueWithDocumentRoot:(NSString *)documentRoot {
-    event_mgr_init();
+    (void)fan_loop_base();
 
     // Process-wide SQLite soft heap limit. 0 disables the limit; any positive
     // value is interpreted as megabytes. Applies to every sqlite3.open() that
@@ -203,7 +191,7 @@ static int luan_lua_print(lua_State *L) {
     }
 
     // 诊断: dump evdns 状态
-    struct evdns_base *db = event_mgr_dnsbase();
+    struct evdns_base *db = fan_loop_dnsbase();
     int ns_count = db ? evdns_base_count_nameservers(db) : -1;
     NSString *dnsMsg = [NSString stringWithFormat:@"[evdns] dnsbase=%p, nameservers=%d\n",
                         db, ns_count];
@@ -381,27 +369,22 @@ static int luan_lua_print(lua_State *L) {
         }
     }
 
-    // Do not hold the outer setup lock across FAN_RESUME. lua_resume() owns
-    // and releases its own lock; keeping this lock here would leave one
-    // recursive level held while the resumed coroutine executes C functions.
+    // Do not hold the outer setup lock across the v2 coroutine transition.
     lua_unlock(L);
 
     if (loadStatus == LUA_OK) {
-        int status = FAN_RESUME(co, L, 0);
+        int status = fan_coro_resume(co, 0);
         // LUA_OK=0 finished; LUA_YIELD=1 suspended; >1 error.
-        // core.lua is expected to call fan.loop() (blocks in event_mgr_loop).
-        // If the entry coroutine yields BEFORE fan.loop, we must still enter the
-        // event loop — otherwise CLI exits immediately after first yield.
+        // If the entry coroutine yields before the loop starts, enter it here.
         if (status > LUA_YIELD) {
             const char *err = lua_tostring(co, -1);
             NSString *msg = [NSString stringWithFormat:@"!! lua 运行时错误 (%d): %s\n",
                              status, err ? err : "(no message)"];
             emit(msg);
         } else if (status == LUA_YIELD) {
-            emit(@"!! lua entry yielded before fan.loop; entering event_mgr_loop\n");
-            event_mgr_loop();
+            emit(@"!! lua entry yielded before fan.loop; entering fan_loop_run\n");
+            fan_loop_run();
         } else {
-            // A normal return is expected for standalone script execution.
             if (!execMode) {
                 emit(@"!! lua entry returned LUA_OK without fan.loop (service would exit)\n");
             }
@@ -413,26 +396,18 @@ static int luan_lua_print(lua_State *L) {
     lua_unlock(L);
 
     // ---- cleanup ----
-    // fan.loop / event_mgr_loop 已返回 (event_mgr_break 触发). 内部已完成
-    // cleanup_signals / cleanup_dnsbase (event_mgr.c).
-    //
-    // decrRef 当 refcount 降到 0 时会自动调 lua_close, 所以不要再额外 lua_close,
-    // 否则 LuaLockFinalState 里 free(sd) 就是 double-free → crash.
-
+    // Clear every luafan2 module's cached Lua state before decrRef can close L.
+    fan_clear_lua_states();
     _state = nil;
     decrRef(L);
-    // 此时 lua_close 已在 decrRef 内完成, __gc 已跑完.
-
-    // 释放 event bases. 第二次 start 时 event_mgr_init 会重新建立.
-    event_mgr_loop_cleanup();
+    fan_loop_cleanup();
     LuanCloseLogFile();
 }
 
 - (void)stop {
-    // 把主 event base 唤醒, fan.loop / event_mgr_loop 立刻返回.
-    // 然后 _runOnEventQueueWithDocumentRoot 继续往下走, 跑 cleanup, 整个 dispatch_sync 解阻塞.
-    // event_mgr_break 是线程安全的 (内部 event_base_loopbreak), 可以从 UI 线程直接调.
-    event_mgr_break();
+    // Break the v2 event loop from the UI thread; cleanup continues on the
+    // serialized Lua queue after fan_loop_run returns.
+    fan_loop_break();
 }
 
 - (int)refCount {

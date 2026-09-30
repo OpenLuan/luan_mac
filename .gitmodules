@@ -1,6 +1,6 @@
-[submodule "lua-apple/luafan"]
-	path = lua-apple/luafan
-	url = https://github.com/luafan/luafan.git
+[submodule "lua-apple/luafan2"]
+	path = lua-apple/luafan2
+	url = https://github.com/luafan/luafan2.git
 [submodule "libevent"]
 	path = lua-apple/libevent
 	url = https://github.com/libevent/libevent.git

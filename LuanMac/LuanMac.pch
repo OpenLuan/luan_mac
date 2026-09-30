@@ -16,15 +16,4 @@
 #define DEBUG_EOS_LOG(x,...) NSLog(@"[DEBUG_LUAN] " x,__VA_ARGS__)
 #endif
 
-// utlua_mainthread is referenced in ssl.c without including utlua.h —
-// declare here so .c sources see it via the prefix header.
-#ifdef __cplusplus
-extern "C" {
-#endif
-struct lua_State;
-struct lua_State *utlua_mainthread(struct lua_State *L);
-#ifdef __cplusplus
-}
-#endif
-
 #endif /* LuanMac_pch */

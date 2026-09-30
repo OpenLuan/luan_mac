@@ -1,6 +1,6 @@
 # LuanMac
 
-macOS host for [Luan](https://github.com/OpenLuan) — embeds Lua 5.3.3, [luafan](https://github.com/luafan/luafan), and the Luan runtime.
+macOS host for [Luan](https://github.com/OpenLuan) — embeds Lua 5.3.3, [luafan2](https://github.com/luafan/luafan2), and the Luan runtime.
 
 **License:** MIT (see [LICENSE](LICENSE)). Third-party: [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md), [lua-apple/THIRD_PARTY.md](lua-apple/THIRD_PARTY.md).
 
@@ -11,9 +11,9 @@ macOS host for [Luan](https://github.com/OpenLuan) — embeds Lua 5.3.3, [luafan
 | `LuanMac/` | SwiftUI app + ObjC Lua bridge |
 | `LuanCLI/` | `luan` CLI tool |
 | `luan/` | **git submodule** → LUAN source and shared runtime logic |
-| `webase/` | **git submodule** → webase base runtime layer |
+| `webase/` | **git submodule** → webase source embedded by the Linux Luan image |
 | `lua-apple/` | Native stack (Lua, libevent, utlua, PAL, …) |
-| `lua-apple/luafan/` | **git submodule** → luafan |
+| `lua-apple/luafan2/` | **git submodule** → luafan2 LuaFan v2 runtime |
 | `lua-apple/libevent/` | **git submodule** → libevent (`release-2.1.12-stable`) |
 | `lua-apple/lua53/` | **git submodule** → Lua (`v5.3.3`) |
 | `lua-apple/third_party/brotli/` | **git submodule** → Brotli; compiled from its `c/` subtree |
@@ -54,9 +54,7 @@ Local CLI smoke test: `scripts/run_cli_temp.sh` (test-only JWT/activation defaul
 
 See `.gitmodules`:
 
-- `luan` → `https://github.com/OpenLuan/luan.git` (pinned by the parent repository; source of the shared LUAN runtime)
-- `webase` → `https://github.com/luafan/webase.git` (pinned by the parent repository; base runtime layer)
-- `lua-apple/luafan` → `https://github.com/luafan/luafan.git`
+- `lua-apple/luafan2` → `https://github.com/luafan/luafan2.git` (pinned by the parent repository; LuaFan v2 runtime)
 - `lua-apple/libevent` → `https://github.com/libevent/libevent.git` (pinned to `release-2.1.12-stable`; generated headers stay in `lua-apple/platform/libevent-config/macos/`)
 - `lua-apple/lua53` → `https://github.com/lua/lua.git` (pinned to `v5.3.3`; Lua locking is provided by `luauser` / `LUA_USER_H`, see `patches/lua-5.3.3/README.md`)
 - `lua-apple/third_party/brotli` → `https://github.com/google/brotli.git` (compiled from its `c/` subtree; Lua binding remains first-party)

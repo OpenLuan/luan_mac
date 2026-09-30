@@ -1,4 +1,7 @@
-#include "utlua.h"
+#include "lua.h"
+#include "lauxlib.h"
+#include <stdlib.h>
+#include <stdbool.h>
 
 #include <brotli/decode.h>
 #include <brotli/encode.h>

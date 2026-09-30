@@ -11,7 +11,7 @@ URLs may move; pin versions in git history / submodule commits when present.
 | Component | Path (typical) | License (summary) | Upstream |
 |-----------|----------------|-------------------|----------|
 | Lua 5.3.3 | `lua-apple/lua53/` (submodule; no local source patches) | MIT | https://www.lua.org/ / https://github.com/lua/lua `v5.3.3` |
-| luafan | `lua-apple/luafan/` (submodule) | MIT | https://github.com/luafan/luafan |
+| luafan2 | `lua-apple/luafan2/` (submodule) | MIT | https://github.com/luafan/luafan2 |
 | libevent 2.1.12-stable | `lua-apple/libevent/` (submodule) + `platform/libevent-config/macos/` | BSD (see `libevent/LICENSE`) | https://github.com/libevent/libevent `release-2.1.12-stable` |
 | Brotli C library | `lua-apple/third_party/brotli/` (submodule; compiled from `c/`) | MIT (`brotli/LICENSE`) | https://github.com/google/brotli |
 | SQLite amalgamation | `lua-apple/utlua/sqlite3.c` (+ headers) | Public domain | https://www.sqlite.org/ |
@@ -45,7 +45,7 @@ MIT.
 
 ## Runtime Lua tree
 
-`runtime/` is a **build output** (merged from luafan modules, webase, and luan
+`runtime/` is a **build output** (merged from luafan2 modules, webase, and luan
 sources via `scripts/build_runtime.sh`). Third-party JS (e.g. marked) inside `runtime/web`
 keeps its own headers. Prefer rebuilding from source repositories rather than
 hand-editing `runtime/`.
@@ -54,7 +54,7 @@ hand-editing `runtime/`.
 
 See `.gitmodules`. At minimum:
 
-- `lua-apple/luafan` → https://github.com/luafan/luafan.git
+- `lua-apple/luafan2` → https://github.com/luafan/luafan2.git
 - `lua-apple/libevent` → https://github.com/libevent/libevent.git
   (pinned to `release-2.1.12-stable`; generated headers stay in
   `platform/libevent-config/macos/`)

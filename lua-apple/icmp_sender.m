@@ -28,8 +28,8 @@
 #include "lauxlib.h"
 #include "lualib.h"
 
-// Include luafan utilities for state management (resolved via HEADER_SEARCH_PATHS -> luafan/src)
-#include "utlua.h"
+// Include LuaFan v2 coroutine helpers for asynchronous packet completion.
+#include "runtime/coro.h"
 
 // ICMP packet structure (following SimplePing format)
 struct ICMPHeader {
@@ -57,8 +57,10 @@ struct IPv4Header {
 
 // ICMP sending context
 struct icmp_context {
-    // luafan state management - must be first
+    // luafan2 coroutine ownership: mainthread owns the registry ref, while co
+    // is kept alive by _ref_ until fan_coro_wake() resumes it.
     lua_State *mainthread;
+    lua_State *co;
     int _ref_;
 
     // ICMP specific fields
@@ -68,7 +70,7 @@ struct icmp_context {
     struct timeval send_time;
     CFSocketRef socket_ref;
     CFRunLoopSourceRef source_ref;
-    int use_coroutine;              // Whether to use coroutine yield/resume
+    int use_coroutine;              // Also guards response/timeout double wake
 };
 
 // Calculate ICMP checksum (based on SimplePing implementation)
@@ -184,11 +186,13 @@ static void icmp_socket_callback(CFSocketRef socket, CFSocketCallBackType type,
                 // Parse ICMP header
                 struct ICMPHeader *icmpPtr = (struct ICMPHeader *)((uint8_t *)buffer + icmp_offset);
 
-                // Resume coroutine with success
-                lua_State *L = NULL;
-                REF_STATE_GET(ctx, L);
+                // Resume the parked coroutine exactly once. The timeout callback
+                // remains responsible for releasing the CFSocket/context.
+                lua_State *co = ctx->co;
 
-                if (L && ctx->use_coroutine) {
+                if (co && ctx->use_coroutine) {
+                    ctx->use_coroutine = 0;
+                    lua_State *L = co;
                     lua_pushboolean(L, 1);  // success
                     lua_pushnil(L);         // no error
 
@@ -241,11 +245,8 @@ static void icmp_socket_callback(CFSocketRef socket, CFSocketCallBackType type,
                     lua_setfield(L, -2, "body");
                     lua_setfield(L, -2, "icmp");
 
-                    int result = FAN_RESUME(L, ctx->mainthread, 3);  // success, error, packet_info
-                    if (result != LUA_OK && result != LUA_YIELD) {
-                        const char *error = lua_tostring(L, -1);
-                        lua_pop(L, 1);
-                    }
+                    fan_coro_wake(ctx->mainthread, co, ctx->_ref_, 3);
+                    ctx->_ref_ = LUA_NOREF;
                 }
             }
         }
@@ -378,9 +379,11 @@ static int lua_send_icmp_ping(lua_State *L) {
         return luaL_error(L, "Failed to allocate memory for ICMP context");
     }
 
-    // Initialize for coroutine usage
-    REF_STATE_SET(ctx, L);          // Set up state management for yield/resume
-    ctx->use_coroutine = 1;         // Use coroutine yield/resume
+    // Park the running coroutine and keep it pinned across the async wait.
+    ctx->mainthread = fan_coro_main(L);
+    ctx->co = L;
+    ctx->_ref_ = fan_coro_park(L);
+    ctx->use_coroutine = 1;
     ctx->identifier = (uint16_t)identifier;
     ctx->sequence = (uint16_t)sequence;
     ctx->ttl = (uint8_t)ttl;
@@ -393,7 +396,9 @@ static int lua_send_icmp_ping(lua_State *L) {
                                          data, data_len, (uint8_t)ttl, ctx);
 
     if (result != 0) {
-        // Failed to send
+        // Failed to send; no callback will wake this coroutine.
+        fan_unref_safe(ctx->mainthread, ctx->_ref_);
+        ctx->_ref_ = LUA_NOREF;
         free(ctx);
         lua_pushboolean(L, 0);
         lua_pushstring(L, "Failed to send ICMP packet via CFSocket");
@@ -403,21 +408,15 @@ static int lua_send_icmp_ping(lua_State *L) {
     // Schedule cleanup after timeout (increased to 10 seconds)
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 10 * NSEC_PER_SEC),
                    dispatch_get_main_queue(), ^{
-        // Check if we still need to notify the Lua side about timeout
-        lua_State *L = NULL;
-        REF_STATE_GET(ctx, L);
-
-        if (L && ctx->use_coroutine) {
-            // Resume coroutine with timeout error
-            lua_pushboolean(L, 0);  // success = false
-            lua_pushstring(L, "ICMP request timeout");
-            lua_pushnil(L);         // packet_info = nil
-
-            int result = FAN_RESUME(L, ctx->mainthread, 3);  // success, error, packet_info
-            if (result != LUA_OK && result != LUA_YIELD) {
-                const char *error = lua_tostring(L, -1);
-                lua_pop(L, 1);
-            }
+        // Resume the parked coroutine if the response callback did not win.
+        lua_State *co = ctx->co;
+        if (co && ctx->use_coroutine) {
+            ctx->use_coroutine = 0;
+            lua_pushboolean(co, 0);  // success = false
+            lua_pushstring(co, "ICMP request timeout");
+            lua_pushnil(co);         // packet_info = nil
+            fan_coro_wake(ctx->mainthread, co, ctx->_ref_, 3);
+            ctx->_ref_ = LUA_NOREF;
         }
 
         if (ctx->source_ref) {
@@ -427,8 +426,7 @@ static int lua_send_icmp_ping(lua_State *L) {
         if (ctx->socket_ref) {
             CFRelease(ctx->socket_ref);
         }
-        // Clean up state reference for async function
-        REF_STATE_CLEAR(ctx);
+        // The coroutine registry pin was released by fan_coro_wake above.
         free(ctx);
     });
 

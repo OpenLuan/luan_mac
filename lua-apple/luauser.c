@@ -47,18 +47,18 @@ int lockInited = 0;
 static _Thread_local int lua_lock_depth = 0;
 
 // Runtime lock switch. The global Lua mutex is only worth taking when more
-// than one thread can touch the shared lua_State — i.e. when luafan worker
+// than one thread can touch the shared lua_State — i.e. when fan2 worker
 // threads are running. With no workers everything runs on a single thread and
 // the mutex is pure overhead, so we keep it disabled (lock/unlock become a
 // relaxed atomic load + branch, effectively free).
 //
-// event_mgr_workers_init() calls LuaLockEnable() BEFORE spawning any worker
+// The worker bootstrap must call LuaLockEnable() BEFORE spawning any worker
 // thread, so the switch is observed as enabled by every thread that could ever
 // contend. It is a one-way latch (never flipped back to 0 within a run), which
 // avoids any enable/disable race: once a worker exists, locking stays on.
 static atomic_int g_lua_locking_enabled = 0;
 
-// Called by luafan (event_mgr_workers_init) before the first worker thread is
+// Called by the fan2 worker bootstrap before the first worker thread is
 // created. Safe to call multiple times.
 void LuaLockEnable(void) {
     atomic_store_explicit(&g_lua_locking_enabled, 1, memory_order_release);
@@ -134,11 +134,10 @@ void LuaLockResumeAfterLoop(int depth) {
 
 int LuaLockDepthGet(void) { return lua_lock_depth; }
 
-/* Build-role query consumed by luafan's event_mgr (weak import there): in this
- * build the lock lives INSIDE the interpreter (lua53 is compiled with
- * -DLUA_USER_H="<luauser.h>"), so every lua_resume() already holds the mutex and
- * luafan must not add its own resume wrapper on top.
- * See luafan/src/event_mgr.c install_locking_resume(). */
+/* Build-role query consumed by the runtime: in this build the lock lives INSIDE
+ * the interpreter (lua53 is compiled with -DLUA_USER_H="<luauser.h>"), so every
+ * lua_resume() already holds the mutex and the runtime must not add its own
+ * resume wrapper on top. */
 int LuaCoreLockHooked(void) { return 1; }
 
 // Restore both the TLS mirror and the recursive mutex's actual count.

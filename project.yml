@@ -23,7 +23,7 @@ settings:
     CLANG_ENABLE_EXPLICIT_MODULES: NO
     HEADER_SEARCH_PATHS: >
       $(inherited)
-      $(SRCROOT)/lua-apple/luafan/src
+      $(SRCROOT)/lua-apple/luafan2/src
       $(SRCROOT)/lua-apple
       $(SRCROOT)/lua-apple/platform/libevent-config/macos
       $(SRCROOT)/lua-apple/libevent/include
@@ -53,6 +53,12 @@ settings:
       -DOPENSSL_NO_MD2
       -DMACOS_CLASSIC
       -DFAN_HAS_OPENSSL
+      -DFAN_WITH_OPENSSL=1
+      -DFAN_WITH_ZLIB=1
+      -DFAN_WITH_CURL=1
+      -DFAN2_SOURCE=1
+      -Dluaopen_fan=luaopen_fan
+      -DFAN_WITH_SQLITE3=1
       -DSQLITE_ENABLE_MEMORY_MANAGEMENT
       -DSQLITE_DEFAULT_LOCKING_MODE=1
       -DTUNNEL_IN_MAIN_TARGET
@@ -61,27 +67,23 @@ settings:
 # Exclude noise / non-macOS sources under lua-apple when scanning the tree.
 # sqlite3.c / openssl / lua53 / libevent are re-added as explicit source entries
 # (often with -w). Linux/Android PAL stay out of the macOS app target.
+luafan2Excludes: &luafan2Excludes
+  - "main.c"
+  - "db/mariadb.c"
+  - "db/sqlite3.c"
+  - "docs"
+  - "examples"
+  - "tests"
+  - ".github"
+  - ".circleci"
+  - "*.md"
+  - "*.rockspec"
+  - "Makefile*"
+  - "configure*"
+  - "CMakeLists.txt"
+
 luaAppleExcludes: &luaAppleExcludes
-  - "luafan/src/mariadb"
-  - "luafan/src/luamariadb.c"
-  # Global lua_lock: lua-apple/luauser.c (LUA_USER_H). fan_lua_lock.c is the
-  # portable equivalent for Linux/Alpine only; compiling it here would
-  # duplicate LockMainState/... symbols.
-  - "luafan/src/fan_lua_lock.c"
-  - "luafan/docs"
-  - "luafan/examples"
-  - "luafan/tests"
-  - "luafan/modules"
-  - "luafan/ios"
-  - "luafan/openwrt"
-  - "luafan/.circleci"
-  - "luafan/.github"
-  - "luafan/_config.yml"
-  - "luafan/*.md"
-  - "luafan/*.rockspec"
-  - "luafan/Makefile*"
-  - "luafan/configure*"
-  - "luafan/CMakeLists.txt"
+  - "luafan2"
   - "utlua/sqlite3.c"
   - "utlua/brotli/common"
   - "utlua/brotli/dec"
@@ -241,16 +243,19 @@ targets:
     deploymentTarget: "14.0"
     sources:
       - path: LuanCLI
-      # Luan-owned native file scanner; do not add this to luafan/fan.so.
+      # Luan-owned native file scanner; do not add this to luafan2/fan.so.
       - path: luan/native/file_scan.c
         compilerFlags: -w
       - path: LuanMac/LuaBridge.m
         compilerFlags: -w
       - path: LuanMac/LuaBridge.h
+      # LuaFan v2 native runtime. Keep the standalone interpreter out.
+      - path: lua-apple/luafan2/src
+        excludes: *luafan2Excludes
+        compilerFlags: -DFAN2_SOURCE=1 -Dluaopen_fan=luaopen_fan
       - path: lua-apple
         excludes: *luaAppleExcludes
-      # GCM native binding is sourced from the webase submodule.
-      - path: webase/gcm
+      - path: lua-apple/luafan2/src/db/sqlite3.c
         compilerFlags: -w
       - path: lua-apple/utlua/sqlite3.c
         compilerFlags: -w
@@ -287,6 +292,7 @@ targets:
       - sdk: libz.tbd
       - sdk: libiconv.tbd
       - sdk: libldap.tbd
+      - sdk: libsqlite3.tbd
       - framework: Frameworks/libcrypto.xcframework
         embed: false
       - framework: Frameworks/libssl.xcframework

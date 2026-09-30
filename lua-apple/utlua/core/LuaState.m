@@ -4,7 +4,7 @@
 #import "LuaState.h"
 
 #import "lua.h"
-#import "utlua.h" // LuaRefCount, lua_lock / lua_unlock
+#import "luauser.h"
 
 @implementation LuaState {
     lua_State *_L;
@@ -23,7 +23,7 @@
 }
 
 - (int)refCount {
-    return LuaRefCount(_L);
+    return _L ? 1 : 0;
 }
 
 - (void)setRegistryValue:(NSString *)value forKey:(NSString *)key {

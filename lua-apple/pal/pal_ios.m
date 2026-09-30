@@ -17,11 +17,12 @@
 #include "lua.h"
 #include "lauxlib.h"
 #include "llimits.h"
+#include "runtime/loop.h"
+#include "runtime/coro.h"
 #ifndef PAL_NO_TUNNEL
 #import "PPTunnelPacket.h"
 #endif
 #include <event2/dns.h>
-#include "event_mgr.h"
 
 // ---------------------------------------------------------------------------
 // Externs from existing code
@@ -171,7 +172,7 @@ static void pal_tun_read_loop(void) {
         }
         arg->count = idx;
         arg->cb = cb;
-        arg->ev = evuser_new(event_mgr_base_current(), pal_read_batch_cb, arg);
+        arg->ev = evuser_new(fan_loop_current_base(), pal_read_batch_cb, arg);
         if (!arg->ev) {
             for (NSUInteger i = 0; i < idx; i++) free(arg->packets[i]);
             free(arg->packets);
@@ -431,14 +432,8 @@ void pal_init(void) {
 }
 
 // ---------------------------------------------------------------------------
-// Helpers called from TunnelService -start to set paths at runtime
-// ---------------------------------------------------------------------------
-
-// ---------------------------------------------------------------------------
 // Bridge callbacks (called from pal_lua_bridge.c via extern)
 // ---------------------------------------------------------------------------
-
-extern lua_State *utlua_mainthread(lua_State *L);
 
 void pal_bridge_set_read_packet_handler(lua_State *L, int func_index) {
 #ifndef PAL_NO_TUNNEL
@@ -450,7 +445,7 @@ void pal_bridge_set_read_packet_handler(lua_State *L, int func_index) {
             int ref = luaL_ref(L, LUA_REGISTRYINDEX);
             lua_unlock(L);
             func = [[LuaFunction alloc] initWithRef:ref
-                                          withState:utlua_mainthread(L)];
+                                          withState:fan_coro_main(L)];
         }
         [PPTunnelPacket.shared setReadPacketHandler:func];
     }
@@ -468,7 +463,7 @@ void pal_bridge_set_dns_port(int port) {
     char dns_server[32];
     snprintf(dns_server, sizeof(dns_server), "127.0.0.1:%d", port);
 
-    struct evdns_base *dns_base = event_mgr_dnsbase();
+    struct evdns_base *dns_base = fan_loop_dnsbase();
     if (!dns_base) return;
 
     evdns_base_clear_nameservers_and_suspend(dns_base);

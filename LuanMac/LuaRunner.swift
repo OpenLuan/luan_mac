@@ -7,7 +7,7 @@ enum ServiceState: Equatable {
     case idle           // 未启动 / 已干净停止, 可启动
     case starting       // 正在引导 lua / 编译
     case running        // core.lua 已经把 httpd 绑好, 服务对外可用
-    case stopping       // 已请求 event_mgr_break, 等 fan.loop + cleanup 退
+    case stopping       // 已请求 fan_loop_break, 等 fan.loop + cleanup 退
     case failed(String) // 启动过程出错
 }
 

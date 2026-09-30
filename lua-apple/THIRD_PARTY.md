@@ -4,7 +4,7 @@
 |-----------|----------|--------------|--------|
 | Lua 5.3.3 | `lua53/` | git submodule github.com/lua/lua @ `v5.3.3` | clean upstream (no local `.diff`); lock via `luauser` + `-DLUA_USER_H` |
 | luauser | `luauser.c`, `luauser.h` | first-party | `LUA_USER_H` hooks |
-| luafan | `luafan/` | submodule luafan/luafan | git submodule |
+| luafan2 | `luafan2/` | submodule luafan/luafan2 | LuaFan v2 runtime |
 | libevent 2.1.12-stable | `libevent/` | git submodule github.com/libevent/libevent @ `release-2.1.12-stable` | macOS generated headers in `platform/libevent-config/macos/` (not upstream); see LICENSE |
 | Brotli | `third_party/brotli/` | git submodule github.com/google/brotli @ `v1.1.0` lineage | compiled from `third_party/brotli/c`; binding: `utlua/brotli/lua_brotli.c` (first-party) |
 | lua-openssl | `third_party/lua-openssl/` (compiled directly) | git submodule github.com/OpenLuan/lua-openssl @ branch `luan-eaa7923` | fork of zhaozg/lua-openssl @ `eaa7923` + local fix (see below); deps submodules `deps/auxiliar` (lua-auxiliar) + `deps/lua-compat` (lua-compat-5.3) ship inside it |
@@ -13,7 +13,7 @@
 
 ## Submodules
 
-- `luafan/` → https://github.com/luafan/luafan.git
+- `luafan2/` → https://github.com/luafan/luafan2.git
 - `libevent/` → https://github.com/libevent/libevent.git (pinned to
   `release-2.1.12-stable`); generated headers stay in
   `platform/libevent-config/macos/`

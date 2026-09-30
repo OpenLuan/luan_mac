@@ -4,10 +4,12 @@
 #
 # runtime/ is a BUILD output directory — do not hand-edit.
 # Edit sources under:
-#   luan_mac/lua-apple/luafan/modules  (layer 1)
-#   luan_mac/webase/                   (layer 2 submodule)
-#   luan_mac/luan/                     (layer 3 submodule)
+#   luan_mac/lua-apple/luafan2/lua/fan  (layer 1: fan runtime modules)
+#   luan_mac/lua-apple/luafan2/webase/  (layer 2: webase framework)
+#   luan_mac/luan/                      (layer 3: Luan app + entry core.lua)
 # then re-run this script.
+# luan_mac/webase/ is no longer a runtime layer: luafan2 now owns the webase
+# framework, and this repo keeps only the curlimp native binding.
 # Web is rsynced as-is (no JS minify / no Node/terser).
 # Host loads runtime/core.lua (see LuanMac/LuaBridge.m).
 
@@ -18,8 +20,8 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 RUNTIME_DIR="$PROJECT_ROOT/runtime"
 
-LAYER1="$(cd "$PROJECT_ROOT/lua-apple/luafan/modules" && pwd)"
-LAYER2="$(cd "$PROJECT_ROOT/webase" && pwd)"
+LAYER1="$(cd "$PROJECT_ROOT/lua-apple/luafan2/lua" && pwd)"
+LAYER2="$(cd "$PROJECT_ROOT/lua-apple/luafan2/webase" && pwd)"
 LAYER3="$(cd "$PROJECT_ROOT/luan" && pwd)"
 
 if [ ! -d "$LAYER1" ] || [ ! -d "$LAYER2" ] || [ ! -d "$LAYER3" ]; then
@@ -67,7 +69,7 @@ RSYNC_LUA_EXCLUDES=(
 echo "[build] layer1 (luafan modules) → stage"
 rsync -a "${RSYNC_LUA_EXCLUDES[@]}" "$LAYER1/" "$STAGE/"
 
-echo "[build] layer2 (webase) → stage"
+echo "[build] layer2 (luafan2 webase) → stage"
 rsync -a "${RSYNC_LUA_EXCLUDES[@]}" "$LAYER2/" "$STAGE/"
 
 echo "[build] layer3 (luan) → stage"
@@ -93,7 +95,7 @@ for UNIT_SOURCE in "$LAYER3"/tests/test_*.lua; do
 done
 
 if [ ! -f "$STAGE/core.lua" ]; then
-    echo "[build] ERROR: staged tree missing core.lua (expected from webase)" >&2
+    echo "[build] ERROR: staged tree missing core.lua (expected from luan)" >&2
     exit 1
 fi
 
