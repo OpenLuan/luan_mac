@@ -312,6 +312,10 @@ if runtimeDir.isEmpty {
 }
 print("  runtime dir:   \(runtimeDir)")
 
+// A closed Xcode/parent stderr pipe must not terminate the CLI with SIGPIPE.
+// Individual writes still report EPIPE to the caller when their destination is gone.
+signal(SIGPIPE, SIG_IGN)
+
 // Create and run LuaBridge inside this CLI child process. The SwiftUI app
 // manages this process and never shares its Lua state or libevent bases.
 let bridge = LuaBridge()
