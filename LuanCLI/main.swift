@@ -1,6 +1,10 @@
 import Foundation
 import Security
 
+// A closed parent/Xcode pipe must not terminate this host process with SIGPIPE.
+// Individual writes still report EPIPE to their callers.
+signal(SIGPIPE, SIG_IGN)
+
 // MARK: - Argument Parsing
 
 struct Config {
@@ -312,9 +316,6 @@ if runtimeDir.isEmpty {
 }
 print("  runtime dir:   \(runtimeDir)")
 
-// A closed Xcode/parent stderr pipe must not terminate the CLI with SIGPIPE.
-// Individual writes still report EPIPE to the caller when their destination is gone.
-signal(SIGPIPE, SIG_IGN)
 
 // Create and run LuaBridge inside this CLI child process. The SwiftUI app
 // manages this process and never shares its Lua state or libevent bases.
