@@ -66,6 +66,8 @@ else
 fi
 
 export LUAN_TEST_ENV=1
+# Standalone test apps have no GUI keepalive pipe; never inherit its EOF shutdown hook.
+export LUAN_PARENT_PIPE=0
 export BASE_URL="${BASE_URL:-http://${TEST_HOST}:${TEST_PORT}}"
 export SERVICE_PORT="$TEST_PORT"
 export FILE_SCAN_TEST_ROOT="${FILE_SCAN_TEST_ROOT:-$TEST_DOCROOT/test-fixtures/file_scan_symlink}"
