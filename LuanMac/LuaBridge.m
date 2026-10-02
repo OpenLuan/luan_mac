@@ -25,6 +25,7 @@
 extern void incrRef(lua_State *L);
 extern void decrRef(lua_State *L);
 extern void fan_clear_lua_states(void);
+extern void cleanup_curlimp(void);
 
 static int luan_process_metrics(lua_State *L);
 
@@ -405,6 +406,9 @@ static int luan_lua_print(lua_State *L) {
     lua_unlock(L);
 
     // ---- cleanup ----
+    // curlimp owns event callbacks and coroutine refs outside luafan2's module
+    // aggregate, so cancel it while its Lua state and the event base are valid.
+    cleanup_curlimp();
     // Clear every luafan2 module's cached Lua state before decrRef can close L.
     fan_clear_lua_states();
     _state = nil;
