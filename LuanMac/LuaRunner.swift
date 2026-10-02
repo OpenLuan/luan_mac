@@ -12,6 +12,11 @@ private func acquireDocumentRootLock(_ documentRoot: String) -> DocumentRootLock
     let lockPath = (documentRoot as NSString).appendingPathComponent(".luan.lock")
     let fd = Darwin.open(lockPath, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR)
     guard fd >= 0 else { return .failed(String(cString: strerror(errno))) }
+    if Darwin.fcntl(fd, F_SETFD, FD_CLOEXEC) == -1 {
+        let errorMessage = String(cString: strerror(errno))
+        Darwin.close(fd)
+        return .failed(errorMessage)
+    }
     if flock(fd, LOCK_EX | LOCK_NB) != 0 {
         let lockError = errno
         Darwin.close(fd)

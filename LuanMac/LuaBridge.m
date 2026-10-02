@@ -1,9 +1,11 @@
 #import "LuaBridge.h"
 
 #import <pthread.h>
+#import <fcntl.h>
 #import <mach/mach.h>
 #import <mach/mach_time.h>
 #import <sys/sysctl.h>
+#import <unistd.h>
 #import <event2/event.h>
 #import <sqlite3.h>
 
@@ -57,6 +59,13 @@ void LuanOpenLogFile(NSString *documentRoot) {
     NSString *logPath = [documentRoot stringByAppendingPathComponent:@"luan.log"];
     // 每次启动丢弃旧日志, 避免日志无限增长
     g_logFile = fopen([logPath fileSystemRepresentation], "w");
+    if (g_logFile) {
+        int fd = fileno(g_logFile);
+        int flags = fcntl(fd, F_GETFD);
+        if (flags >= 0) {
+            (void)fcntl(fd, F_SETFD, flags | FD_CLOEXEC);
+        }
+    }
 }
 
 void LuanCloseLogFile(void) {
