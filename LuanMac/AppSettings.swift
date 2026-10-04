@@ -8,7 +8,6 @@ final class AppSettings: ObservableObject {
     @Published var port: Int = 8080
     @Published var sqliteSoftHeapMB: Int = 8
     @Published var debug: Bool = false
-    @Published var aiDebug: Bool = false
     @Published var sandboxUnrestricted: Bool = false
     @Published var sslSkipVerify: Bool = false
     @Published var nativeChromeMCPEnabled: Bool = false
@@ -35,7 +34,6 @@ final class AppSettings: ObservableObject {
         var port: Int
         var sqliteSoftHeapMB: Int?
         var debug: Bool
-        var aiDebug: Bool
         var sandboxUnrestricted: Bool
         var sslSkipVerify: Bool?
         var nativeChromeMCPEnabled: Bool?
@@ -56,7 +54,7 @@ final class AppSettings: ObservableObject {
         else {
             host = "127.0.0.1"; port = 8080
             sqliteSoftHeapMB = 8
-            debug = false; aiDebug = false; sandboxUnrestricted = false; sslSkipVerify = false
+            debug = false; sandboxUnrestricted = false; sslSkipVerify = false
             nativeChromeMCPEnabled = false; nativeChromeMCPPort = 9223
             terminateChromeOnQuit = true
             jwtSecret = ""; activationKey = ""
@@ -66,7 +64,6 @@ final class AppSettings: ObservableObject {
         port = snap.port
         sqliteSoftHeapMB = snap.sqliteSoftHeapMB ?? 8
         debug = snap.debug
-        aiDebug = snap.aiDebug
         sandboxUnrestricted = snap.sandboxUnrestricted
         sslSkipVerify = snap.sslSkipVerify ?? false
         nativeChromeMCPEnabled = snap.nativeChromeMCPEnabled ?? false
@@ -80,7 +77,7 @@ final class AppSettings: ObservableObject {
         guard !documentRoot.isEmpty else { return }
         let snap = Snapshot(host: host, port: port,
                             sqliteSoftHeapMB: sqliteSoftHeapMB,
-                            debug: debug, aiDebug: aiDebug,
+                            debug: debug,
                             sandboxUnrestricted: sandboxUnrestricted,
                             sslSkipVerify: sslSkipVerify,
                             nativeChromeMCPEnabled: nativeChromeMCPEnabled,
@@ -126,7 +123,6 @@ final class AppSettings: ObservableObject {
             "SANDBOX_UNRESTRICTED": sandboxUnrestricted ? "1" : "0",
             "SSL_SKIP_VERIFY": sslSkipVerify ? "1" : "0",
             "DEBUG": debug ? "true" : "false",
-            "AI_DEBUG": aiDebug ? "1" : "0",
             "LUAN_UI_LANGUAGE": uiLanguage,
             // Match Docker defaults: use the C httpd/http implementation (including WebSocket).
             "HTTP_USING_CORE": "true",
@@ -157,7 +153,6 @@ final class AppSettings: ObservableObject {
                     "--host", shellQuote(host), "--port", String(port),
                     "--sqlite-soft-heap-mb", String(sqliteSoftHeapMB)]
         if debug { args.append("--debug") }
-        if aiDebug { args.append("--ai-debug") }
         if sandboxUnrestricted { args.append("--sandbox-unrestricted") }
         if sslSkipVerify { args.append("--ssl-skip-verify") }
         if !jwtSecret.isEmpty { args.append(contentsOf: ["--jwt-secret", shellQuote(jwtSecret)]) }

@@ -45,7 +45,6 @@ struct Config {
     var port: Int = 8080
     var sqliteSoftHeapMB: Int = 8
     var debug: Bool = false
-    var aiDebug: Bool = false
     var sandboxUnrestricted: Bool = false
     var sslSkipVerify: Bool = false
     var jwtSecret: String = ""
@@ -77,7 +76,6 @@ func printUsage() {
       -p, --port <port>            HTTP port (default: 8080)
           --sqlite-soft-heap-mb <n> SQLite soft heap limit in MB (default: 8)
           --debug                  Enable debug logging
-          --ai-debug               Enable AI debug logging
           --sandbox-unrestricted   Allow sandbox escape for root users
           --ssl-skip-verify        Skip SSL certificate verification
           --jwt-secret <secret>    JWT secret
@@ -129,7 +127,6 @@ func parseArgs() -> Config? {
             guard i < args.count, let mb = Int(args[i]) else { fputs("error: \(arg) requires a numeric value\n", stderr); return nil }
             config.sqliteSoftHeapMB = mb
         case "--debug": config.debug = true
-        case "--ai-debug": config.aiDebug = true
         case "--sandbox-unrestricted": config.sandboxUnrestricted = true
         case "--ssl-skip-verify": config.sslSkipVerify = true
         case "--jwt-secret":
@@ -288,7 +285,6 @@ setEnv("ACTIVATION_KEY", config.activationKey)
 setEnv("WS_TOKEN", config.wsToken)
 setEnv("PURGE_TOKEN", config.purgeToken)
 if config.debug { setEnv("DEBUG", "1") }
-if config.aiDebug { setEnv("AI_DEBUG", "1") }
 if config.sandboxUnrestricted { setEnv("SANDBOX_UNRESTRICTED", "1") }
 if config.sslSkipVerify { setEnv("SSL_SKIP_VERIFY", "1") }
 

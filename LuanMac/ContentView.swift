@@ -422,7 +422,6 @@ struct SettingsSheet: View {
             VStack(alignment: .leading, spacing: 8) {
                 HStack(spacing: 16) {
                     Toggle("Debug", isOn: $settings.debug)
-                    Toggle("AI Debug", isOn: $settings.aiDebug)
                     Toggle(L("native.http.sandboxUnrestricted"), isOn: $settings.sandboxUnrestricted)
                         .help(L("native.http.sandboxUnrestricted.help"))
                     Spacer()
