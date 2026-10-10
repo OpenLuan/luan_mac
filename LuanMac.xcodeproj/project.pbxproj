@@ -52,7 +52,6 @@
 		3F31DDF555757396DB35BB70 /* lutf8lib.c in Sources */ = {isa = PBXBuildFile; fileRef = C9D4A78A2127810E14DDA47B /* lutf8lib.c */; settings = {COMPILER_FLAGS = "-w"; }; };
 		40344266D3F73C9015366A9D /* bufferevent_ratelim.c in Sources */ = {isa = PBXBuildFile; fileRef = 8F037F9CC0BDE0FE63A22989 /* bufferevent_ratelim.c */; settings = {COMPILER_FLAGS = "-w"; }; };
 		40A0D7F3F46C4FF1B2C604AA /* evmap.c in Sources */ = {isa = PBXBuildFile; fileRef = AF22BD7885C483B823DCC885 /* evmap.c */; settings = {COMPILER_FLAGS = "-w"; }; };
-		431AAD759105E1B457A48725 /* libldap.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 139968264C995BBC574E28F0 /* libldap.tbd */; };
 		44524934019B894019DBC8D2 /* state.c in Sources */ = {isa = PBXBuildFile; fileRef = A7388CE9C54EC72C5B9FAF08 /* state.c */; settings = {COMPILER_FLAGS = "-w"; }; };
 		44D5F368B8865EEE198A7CC0 /* bufferevent_pair.c in Sources */ = {isa = PBXBuildFile; fileRef = 5739E4BF58DC8FEB459FABD6 /* bufferevent_pair.c */; settings = {COMPILER_FLAGS = "-w"; }; };
 		44DA138E8AF1988C8578538D /* libssl.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4E5407A9B543504885BA7762 /* libssl.xcframework */; };
@@ -144,7 +143,6 @@
 		ADC5AC38A8058B75D5C2E9F0 /* util.c in Sources */ = {isa = PBXBuildFile; fileRef = BCBDAB6CE1EFE50A15EB3C1D /* util.c */; settings = {COMPILER_FLAGS = "-w"; }; };
 		B09710F907E645B6138D1FA8 /* oids.txt in Resources */ = {isa = PBXBuildFile; fileRef = 90A476FCEA24E7968CF8C5B3 /* oids.txt */; };
 		B15BDB644B768AB445E05500 /* runtime in Resources */ = {isa = PBXBuildFile; fileRef = 4DBE87D7CB7943A20BF50308 /* runtime */; };
-		B1BF3E511FA41C85AD9F2FD8 /* libldap.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 139968264C995BBC574E28F0 /* libldap.tbd */; };
 		B235C1ED4C6C1AC2E3F66331 /* ltable.c in Sources */ = {isa = PBXBuildFile; fileRef = 4C2959CF1591262C9024D8BB /* ltable.c */; settings = {COMPILER_FLAGS = "-w"; }; };
 		B28D3093A81CF3EC8CF07443 /* event_tagging.c in Sources */ = {isa = PBXBuildFile; fileRef = 5FF48D8B90932EB017CA0895 /* event_tagging.c */; settings = {COMPILER_FLAGS = "-w"; }; };
 		B5D2F39D38B04B29FF94DE7C /* ltm.c in Sources */ = {isa = PBXBuildFile; fileRef = 318873068CEE27261F187F12 /* ltm.c */; settings = {COMPILER_FLAGS = "-w"; }; };
@@ -287,7 +285,6 @@
 		11EA6ABA21110096F5D01D59 /* luauser.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = luauser.h; sourceTree = "<group>"; };
 		12ABFBFB6AF0374D34AA3656 /* huffman.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = huffman.c; sourceTree = "<group>"; };
 		12C0B2BE45278B9CF5A9CDBF /* .uncrustify */ = {isa = PBXFileReference; path = .uncrustify; sourceTree = "<group>"; };
-		139968264C995BBC574E28F0 /* libldap.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libldap.tbd; path = usr/lib/libldap.tbd; sourceTree = SDKROOT; };
 		13DBC73947A7C56EA1CF782A /* lfs.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = lfs.h; sourceTree = "<group>"; };
 		13DC6918FD95E0C0EC4A1A23 /* config.ld */ = {isa = PBXFileReference; path = config.ld; sourceTree = "<group>"; };
 		15B44F1F3EA69D933C437360 /* lundump.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = lundump.h; sourceTree = "<group>"; };
@@ -630,7 +627,6 @@
 				D084B6D91BAC71A977AF2DB0 /* libresolv.tbd in Frameworks */,
 				9216B93E12E910872517602E /* libz.tbd in Frameworks */,
 				529E9EB301F9AA0965FBA1D3 /* libiconv.tbd in Frameworks */,
-				431AAD759105E1B457A48725 /* libldap.tbd in Frameworks */,
 				65CE73D14E7D5FF39BCDFF4E /* SystemConfiguration.framework in Frameworks */,
 				0F91242BFD6B8F2A1F281CE2 /* libcurl.xcframework in Frameworks */,
 				EA016B8A4E561ACFF0333244 /* libssl.xcframework in Frameworks */,
@@ -647,7 +643,6 @@
 				EE2DFB6754668C34969008DC /* libresolv.tbd in Frameworks */,
 				5FA3CC25BEF12D137BD908C4 /* libz.tbd in Frameworks */,
 				8813006DA968AD51E64C34CB /* libiconv.tbd in Frameworks */,
-				B1BF3E511FA41C85AD9F2FD8 /* libldap.tbd in Frameworks */,
 				D1C13CCDA482F3DC99EF8013 /* libsqlite3.tbd in Frameworks */,
 				7097CC08DD73587D898098E4 /* SystemConfiguration.framework in Frameworks */,
 				ED871473F6D8CC42DFA3A064 /* libcurl.xcframework in Frameworks */,
@@ -757,7 +752,6 @@
 				CA39BE4A587776FB488BEA74 /* libcurl-impersonate.xcframework */,
 				5F0E7CD87C229DAFE5601EA4 /* libcurl.xcframework */,
 				EE8562B8008CB46FED11268E /* libiconv.tbd */,
-				139968264C995BBC574E28F0 /* libldap.tbd */,
 				B8ECBF19268E5F702116B622 /* libnghttp2.xcframework */,
 				3097211FF2B53FAF85F3FB66 /* libresolv.tbd */,
 				5DF88E95E8490F4EAE825B81 /* libsqlite3.tbd */,

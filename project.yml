@@ -213,7 +213,6 @@ targets:
       - sdk: libresolv.tbd
       - sdk: libz.tbd
       - sdk: libiconv.tbd
-      - sdk: libldap.tbd
       - sdk: SystemConfiguration.framework
       # Stock libcurl (OpenSSL backend). Browser TLS fingerprinting is
       # split out into a separate stdio MCP subprocess — see the top-level
@@ -330,7 +329,6 @@ targets:
       - sdk: libresolv.tbd
       - sdk: libz.tbd
       - sdk: libiconv.tbd
-      - sdk: libldap.tbd
       - sdk: libsqlite3.tbd
       - sdk: SystemConfiguration.framework
       # Stock libcurl (OpenSSL backend); see LuanMac target above and the
