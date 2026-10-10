@@ -403,6 +403,14 @@ let serviceEnv: [String: String] = [
     "WS_TOKEN": config.wsToken,
     "PURGE_TOKEN": config.purgeToken,
     "STATUS_TOKEN": inheritedEnv["STATUS_TOKEN"] ?? "",
+    // Directory containing the running `luan` binary. Lua modules use this
+    // to discover sibling binaries (e.g. curl-impersonate-mcp subprocess)
+    // when running directly out of Xcode's Build/Products/Debug/ instead
+    // of a packaged .app bundle. In the .app layout WORKDIR's grandparent
+    // + "/MacOS/" already lands next to the binaries; in the developer
+    // layout WORKDIR (docroot/runtime) is unrelated to the executable's
+    // location, so we expose exeDir explicitly.
+    "LUAN_EXECUTABLE_DIR": exeDir,
 ]
 if config.execCode.isEmpty && config.execScript.isEmpty {
     bridge.run(withDocumentRoot: config.documentRoot, env: serviceEnv)
