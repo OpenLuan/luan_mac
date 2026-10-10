@@ -9,7 +9,12 @@ on:
 jobs:
   lua-unit:
     runs-on: macos-latest
-    timeout-minutes: 10
+    # Bumped from 10m -> 25m when build_xcframeworks.sh macos started
+    # building vanilla libcurl + nghttp2 from source (adds ~7 min on top of
+    # OpenSSL). GitHub macos-latest arm64 queue + xcframework build already
+    # eats ~9 min before the first Lua test runs; raise the ceiling so the
+    # 25-case integration suite has room to complete.
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
         with:
