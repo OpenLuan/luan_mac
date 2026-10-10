@@ -193,8 +193,17 @@ build_openssl() {
   }
 
   build_ios_sim() {
-    build_one ios-sim-arm64 iossimulator-xcrun -arch arm64
-    build_one ios-sim-x86_64 iossimulator-xcrun -arch x86_64
+    # OpenSSL 3.x rejects `iossimulator-xcrun -arch <arch>` with
+    # "target already defined - iossimulator-xcrun (offending arg: arm64)":
+    # the generic iossimulator-xcrun target already pins the arch via the
+    # SDK's own clang invocation, so passing a second -arch via Configure
+    # trips the duplicate-target guard. Thread the arch through CC
+    # instead (mirrors build_catalyst), using an explicit -target so the
+    # driver picks the right triple for each simulator slice.
+    local tgt_arm="-target arm64-apple-ios15.0-simulator"
+    local tgt_x64="-target x86_64-apple-ios15.0-simulator"
+    build_one ios-sim-arm64 iossimulator-xcrun CC="clang $tgt_arm"
+    build_one ios-sim-x86_64 iossimulator-xcrun CC="clang $tgt_x64"
     lipo -create -output "$WORK_OPENSSL/libcrypto-iossim.a" \
       "$WORK_OPENSSL/ios-sim-arm64/libcrypto.a" "$WORK_OPENSSL/ios-sim-x86_64/libcrypto.a"
     lipo -create -output "$WORK_OPENSSL/libssl-iossim.a" \
@@ -229,14 +238,22 @@ build_openssl() {
     macos)    build_macos ;;
     ios)      build_ios ;;
     ios-sim)  build_ios_sim ;;
-    tvos)     build_tvos ;;
+    tvos)
+      # OpenSSL 3.x removed the dedicated tvos64-xcrun target; the legacy
+      # recipe does not configure. Nothing in project.yml currently builds
+      # for tvOS, so the default 'all' invocation skips this slice. Users
+      # that need it must update build_tvos() for OpenSSL 3.x first (likely
+      # via iphoneos-cross + CC="clang -target arm64-apple-tvos<ver>").
+      echo "[openssl] WARN: build_tvos is not updated for OpenSSL 3.x and will fail" >&2
+      build_tvos ;;
     catalyst) build_catalyst ;;
     all)
       build_macos
       build_ios
       build_ios_sim
-      build_tvos
-      # Catalyst is tricky; enable when needed. See build_catalyst above.
+      # tvos skipped: see 'tvos' case above. Catalyst is tricky; enable
+      # when needed. See build_catalyst above.
+      # build_tvos
       # build_catalyst
       ;;
     *) echo "unknown platform: $PLATFORM (macos|ios|ios-sim|tvos|catalyst|all)" >&2; exit 1 ;;
