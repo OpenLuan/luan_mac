@@ -628,10 +628,8 @@
 				9216B93E12E910872517602E /* libz.tbd in Frameworks */,
 				529E9EB301F9AA0965FBA1D3 /* libiconv.tbd in Frameworks */,
 				65CE73D14E7D5FF39BCDFF4E /* SystemConfiguration.framework in Frameworks */,
-				0F91242BFD6B8F2A1F281CE2 /* libcurl.xcframework in Frameworks */,
 				EA016B8A4E561ACFF0333244 /* libssl.xcframework in Frameworks */,
 				E258F6987CD998BAB714913C /* libcrypto.xcframework in Frameworks */,
-				8FF1446AEB99C398E9277438 /* libnghttp2.xcframework in Frameworks */,
 				BF3B057FA9422C09654F1607 /* libcurl-impersonate.xcframework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -645,10 +643,8 @@
 				8813006DA968AD51E64C34CB /* libiconv.tbd in Frameworks */,
 				D1C13CCDA482F3DC99EF8013 /* libsqlite3.tbd in Frameworks */,
 				7097CC08DD73587D898098E4 /* SystemConfiguration.framework in Frameworks */,
-				ED871473F6D8CC42DFA3A064 /* libcurl.xcframework in Frameworks */,
 				44DA138E8AF1988C8578538D /* libssl.xcframework in Frameworks */,
 				F361B811B276550925C5C728 /* libcrypto.xcframework in Frameworks */,
-				28DD115A925CADC6B13A050C /* libnghttp2.xcframework in Frameworks */,
 				BF3B057FA9422C09654F1607 /* libcurl-impersonate.xcframework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -751,9 +747,7 @@
 			children = (
 				853B8EE04597A010CB5216A7 /* libcrypto.xcframework */,
 				CA39BE4A587776FB488BEA74 /* libcurl-impersonate.xcframework */,
-				5F0E7CD87C229DAFE5601EA4 /* libcurl.xcframework */,
 				EE8562B8008CB46FED11268E /* libiconv.tbd */,
-				B8ECBF19268E5F702116B622 /* libnghttp2.xcframework */,
 				3097211FF2B53FAF85F3FB66 /* libresolv.tbd */,
 				5DF88E95E8490F4EAE825B81 /* libsqlite3.tbd */,
 				4E5407A9B543504885BA7762 /* libssl.xcframework */,
@@ -1942,7 +1936,7 @@
 				DEVELOPMENT_TEAM = "";
 				GCC_PRECOMPILE_PREFIX_HEADER = NO;
 				GCC_PREFIX_HEADER = "";
-				HEADER_SEARCH_PATHS = "$(SRCROOT)/Frameworks/libcurl.xcframework/macos-arm64_x86_64/Headers\n";
+				HEADER_SEARCH_PATHS = "$(SRCROOT)/Frameworks/libcurl-impersonate.xcframework/macos-arm64_x86_64/Headers\n";
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @loader_path @loader_path/../Frameworks\n";
 				LIBRARY_SEARCH_PATHS = "$(SRCROOT)/Frameworks/libcurl-impersonate.xcframework/macos-arm64_x86_64\n";
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
@@ -1965,7 +1959,7 @@
 				DEVELOPMENT_TEAM = "";
 				GCC_PRECOMPILE_PREFIX_HEADER = NO;
 				GCC_PREFIX_HEADER = "";
-				HEADER_SEARCH_PATHS = "$(SRCROOT)/Frameworks/libcurl.xcframework/macos-arm64_x86_64/Headers\n";
+				HEADER_SEARCH_PATHS = "$(SRCROOT)/Frameworks/libcurl-impersonate.xcframework/macos-arm64_x86_64/Headers\n";
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @loader_path @loader_path/../Frameworks\n";
 				LIBRARY_SEARCH_PATHS = "$(SRCROOT)/Frameworks/libcurl-impersonate.xcframework/macos-arm64_x86_64\n";
 				MACOSX_DEPLOYMENT_TARGET = 14.0;

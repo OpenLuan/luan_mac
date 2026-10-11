@@ -209,16 +209,12 @@ targets:
       - sdk: libz.tbd
       - sdk: libiconv.tbd
       - sdk: SystemConfiguration.framework
-      # Vanilla HTTP stack for non-fingerprinted requests.
-      - framework: Frameworks/libcurl.xcframework
-        embed: false
+      # Single libcurl backend: libcurl-impersonate provides both ordinary
+      # libcurl APIs and browser fingerprinting in the same process.
       - framework: Frameworks/libssl.xcframework
         embed: false
       - framework: Frameworks/libcrypto.xcframework
         embed: false
-      - framework: Frameworks/libnghttp2.xcframework
-        embed: false
-      # In-process browser fingerprinting backend (v2.2.3).
       - framework: Frameworks/libcurl-impersonate.xcframework
         embed: true
         codeSignOnCopy: true
@@ -313,14 +309,11 @@ targets:
       - sdk: libiconv.tbd
       - sdk: libsqlite3.tbd
       - sdk: SystemConfiguration.framework
-      # Vanilla HTTP stack plus the in-process browser fingerprinting backend.
-      - framework: Frameworks/libcurl.xcframework
-        embed: false
+      # Single libcurl backend: libcurl-impersonate provides both ordinary
+      # libcurl APIs and browser fingerprinting in the same process.
       - framework: Frameworks/libssl.xcframework
         embed: false
       - framework: Frameworks/libcrypto.xcframework
-        embed: false
-      - framework: Frameworks/libnghttp2.xcframework
         embed: false
       - framework: Frameworks/libcurl-impersonate.xcframework
         embed: false
@@ -346,18 +339,11 @@ targets:
     # Minimal stdio MCP server that wraps libcurl-impersonate. See
     # curl-impersonate-mcp/README.md for the protocol and lifecycle.
     # Builds into ${BUILT_PRODUCTS_DIR}/curl-impersonate-mcp and is copied
-    # into Contents/MacOS/ by the LuanMac post-build phase so the main
-    # process (which no longer links libcurl-impersonate) can spawn it as
-    # a subprocess.
+    # into Contents/MacOS/ by the LuanMac post-build phase as a quick
+    # rollback subprocess. The normal facade uses the in-process backend.
     #
-    # Why no `framework: Frameworks/libcurl-impersonate.xcframework` dep
-    # entry: the main LuanMac target already pulls that xcframework for
-    # bundle embed, and `libcurl.xcframework` (vanilla, main process)
-    # also publishes a `curl/` header dir. Xcode copies both header dirs
-    # into ${BUILT_PRODUCTS_DIR}/include/curl/ which collides. We dodge
-    # the collision by referencing the impersonate slice directly here
-    # via HEADER_SEARCH_PATHS + OTHER_LDFLAGS, without going through the
-    # framework-dep plumbing that triggers the header copy phase.
+    # The target references the impersonate slice directly to keep the
+    # standalone tool independent from the app's framework embed phase.
     sources:
       - path: curl-impersonate-mcp
         includes:
@@ -374,15 +360,9 @@ targets:
         GCC_PREFIX_HEADER: ""
         GCC_PRECOMPILE_PREFIX_HEADER: NO
         CLANG_ENABLE_MODULES: NO
-        # Use vanilla libcurl's headers directly from its xcframework
-        # slice. The impersonate xcframework's own Headers dir is
-        # intentionally NOT published (its Info.plist drops HeadersPath
-        # so Xcode will not race with the main LuanMac target over
-        # `include/curl/`). The only extra symbol we need —
-        # curl_easy_impersonate — is declared via `extern` in main.c and
-        # resolved at link time against -lcurl-impersonate.4.
+        # Use the headers shipped with the impersonate xcframework.
         HEADER_SEARCH_PATHS: >
-          $(SRCROOT)/Frameworks/libcurl.xcframework/macos-arm64_x86_64/Headers
+          $(SRCROOT)/Frameworks/libcurl-impersonate.xcframework/macos-arm64_x86_64/Headers
         LIBRARY_SEARCH_PATHS: >
           $(SRCROOT)/Frameworks/libcurl-impersonate.xcframework/macos-arm64_x86_64
         OTHER_LDFLAGS: >

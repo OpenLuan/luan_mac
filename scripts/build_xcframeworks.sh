@@ -1,24 +1,21 @@
 #!/bin/bash
-# build_xcframeworks.sh — build all third-party xcframework dependencies used
-# by the LuanMac app / luan CLI targets:
+# build_xcframeworks.sh — build third-party xcframework dependencies used by
+# the LuanMac app / luan CLI targets:
 #
 #   OpenSSL          -> Frameworks/libcrypto.xcframework + libssl.xcframework
-#                       (+ Frameworks/openssl-headers for the generated headers)
-#   nghttp2          -> Frameworks/libnghttp2.xcframework
-#   libcurl (OpenSSL backend, HTTP/2 via nghttp2)
-#                    -> Frameworks/libcurl.xcframework (headers staged inside)
+#                       (+ Frameworks/openssl-headers for generated headers)
 #   curl-impersonate -> Frameworks/libcurl-impersonate.xcframework
-#                       (prebuilt dylibs; headers stripped — libcurl supplies curl.h)
+#                       (prebuilt dylibs + complete curl headers)
 #
-# OpenSSL is compiled from the submodule (lua-apple/third_party/openssl, pinned
-# openssl-3.0.18) in a temp copy so the submodule worktree stays clean. libcurl
-# and nghttp2 are fetched as pinned upstream tarballs with sha256 verification
-# and configured to link against the same OpenSSL slices (ABI parity with
-# Frameworks/libssl.xcframework). libcurl-impersonate is fetched as pre-built
-# dylibs (arm64 + x86_64) from the lexiforest/curl-impersonate GitHub release,
-# lipo'd into a fat dylib with install_name @rpath, and wrapped into an
-# xcframework whose HeadersPath is stripped afterwards so it does not collide
-# with the vanilla libcurl.xcframework headers.
+# The normal all/macos targets use libcurl-impersonate as the single libcurl
+# backend for both ordinary fan.http and browser-fingerprinted curlimp calls.
+# Legacy vanilla libcurl/nghttp2 builders remain available through explicit
+# curl, nghttp2, or vanilla targets, but are not part of the normal build.
+# OpenSSL is compiled from the submodule (lua-apple/third_party/openssl,
+# pinned openssl-3.0.18) in a temp copy so the submodule worktree stays clean.
+# curl-impersonate is fetched as pre-built dylibs (arm64 + x86_64) from the
+# lexiforest/curl-impersonate GitHub release, lipo'd into a fat dylib with
+# install_name @rpath, and wrapped into an xcframework with its curl headers.
 #
 # All outputs are build artifacts (gitignored), not committed.
 #
@@ -28,14 +25,14 @@
 #
 # Usage:
 #   ./scripts/build_xcframeworks.sh [TARGET]
-#     all        : openssl (all platforms) + vanilla + curlimp (default)
-#     macos      : openssl macOS slices + vanilla + curlimp (CI fast path)
-#     ios|ios-sim|tvos|catalyst : openssl only, for that platform + curlimp
+#     all        : openssl (all platforms) + curlimp (default)
+#     macos      : openssl macOS slices + curlimp (CI fast path)
+#     ios|ios-sim|tvos|catalyst : openssl only, for that platform
 #     openssl    : openssl only (all platforms)
-#     nghttp2    : libnghttp2.xcframework only
-#     curl       : libcurl.xcframework only (triggers openssl macos + nghttp2
-#                  if their outputs are not available in this invocation)
-#     vanilla    : nghttp2 + curl (triggers openssl macos as needed)
+#     openssl-macos : OpenSSL macOS slices only (no nghttp2/curl rebuild)
+#     nghttp2    : legacy vanilla HTTP/2 framework only
+#     curl       : legacy vanilla libcurl framework only
+#     vanilla    : legacy nghttp2 + vanilla libcurl build
 #     curlimp    : curl-impersonate only
 #
 # Verify after run:
@@ -86,7 +83,9 @@ cleanup() {
       rm -rf "$WORK_VANILLA"
     fi
   fi
-  [ -n "$WORK_CURIMP" ] && rm -rf "$WORK_CURIMP"
+  if [ -n "$WORK_CURIMP" ]; then
+    rm -rf "$WORK_CURIMP"
+  fi
 }
 trap cleanup EXIT
 
@@ -621,21 +620,17 @@ build_curlimp() {
   echo "[curlimp] x86_64 otool -L:"
   otool -L "$X64_DY" | sed 's/^/    /'
 
-  # Ship the impersonate headers alongside the xcframework (not inside it,
-  # see "post-process" below) so other targets that depend on the vanilla
-  # libcurl.xcframework do not race with impersonate headers over
-  # $(BUILT_PRODUCTS_DIR)/include/curl/*.h ("Multiple commands produce").
-  # The curl-impersonate-mcp target consumes libcurl-impersonate at link
-  # time only (via -lcurl-impersonate.4) and uses the vanilla libcurl
-  # headers for the curl.h declarations plus its own extern for
-  # curl_easy_impersonate, so the stripped xcframework still works.
+  # The impersonate library is the single libcurl backend, so publish its
+  # complete curl headers in the xcframework. This avoids a second vanilla
+  # libcurl header/library tree and lets ordinary fan.http and curlimp use
+  # the same ABI and global state.
   local HEADERS_SRC
   HEADERS_SRC="$(find "$WORK_CURIMP/arm64" -maxdepth 4 -type d -name curl | head -n1)"
   if [ -z "$HEADERS_SRC" ] || [ ! -f "$HEADERS_SRC/curl.h" ]; then
     echo "[curlimp] ERROR: cannot find curl/*.h in arm64 tarball" >&2
     exit 1
   fi
-  echo "[curlimp] headers: $HEADERS_SRC (used only during build; stripped from xcframework)"
+  echo "[curlimp] headers: $HEADERS_SRC"
   local STAGE_HEADERS="$WORK_CURIMP/Headers"
   mkdir -p "$STAGE_HEADERS/curl"
   cp "$HEADERS_SRC"/*.h "$STAGE_HEADERS/curl/"
@@ -656,28 +651,6 @@ build_curlimp() {
       -output "$OUT_DIR/libcurl-impersonate.xcframework" \
     >"$WORK_CURIMP/xcf.log" 2>&1
 
-  # Post-process: strip HeadersPath from Info.plist and remove the on-disk
-  # Headers/ directory so this xcframework contributes NO curl/*.h to
-  # dependents. Keeping them would collide with Frameworks/libcurl.xcframework
-  # (vanilla libcurl), which also publishes curl/curl.h — Xcode would then
-  # report "Multiple commands produce .../include/curl/curl.h" during the
-  # LuanMac + luan + curl-impersonate-mcp parallel build.
-  local XCF_PLIST="$OUT_DIR/libcurl-impersonate.xcframework/Info.plist"
-  local SLICE_HEADERS_DIR
-  SLICE_HEADERS_DIR="$OUT_DIR/libcurl-impersonate.xcframework/macos-arm64_x86_64/Headers"
-  if [ -f "$XCF_PLIST" ]; then
-    # Remove HeadersPath from the first (and only) AvailableLibraries entry.
-    # `-c "Delete …"` is idempotent via `|| true` so re-running the script
-    # on a cleaned xcframework does not fail.
-    /usr/libexec/PlistBuddy -c "Delete :AvailableLibraries:0:HeadersPath" \
-      "$XCF_PLIST" >/dev/null 2>&1 || true
-    echo "[curlimp] stripped HeadersPath from $XCF_PLIST"
-  fi
-  if [ -d "$SLICE_HEADERS_DIR" ]; then
-    rm -rf "$SLICE_HEADERS_DIR"
-    echo "[curlimp] removed on-disk Headers/ from xcframework slice"
-  fi
-
   echo ""
   echo "[curlimp] done: $OUT_DIR/libcurl-impersonate.xcframework"
   echo "[curlimp] verify:"
@@ -694,19 +667,18 @@ build_curlimp() {
 
 PLATFORM="${1:-all}"
 case "$PLATFORM" in
-  openssl) build_openssl all ;;
-  nghttp2) build_nghttp2 ;;
-  curl)    build_curl_vanilla ;;
-  vanilla) build_vanilla ;;
-  curlimp) build_curlimp ;;
+  openssl)       build_openssl all ;;
+  openssl-macos) build_openssl macos ;;
+  nghttp2)       build_nghttp2 ;;
+  curl)          build_curl_vanilla ;;
+  vanilla)       build_vanilla ;;
+  curlimp)       build_curlimp ;;
   all)
     build_openssl all
-    build_vanilla
     build_curlimp
     ;;
   macos)
     build_openssl macos
-    build_vanilla
     build_curlimp
     ;;
   ios|ios-sim|tvos|catalyst)
@@ -715,7 +687,7 @@ case "$PLATFORM" in
     # here is targeted at the Mac luan CLI + curl-impersonate-mcp subprocess).
     build_openssl "$PLATFORM"
     ;;
-  *) echo "unknown target: $PLATFORM (all|macos|ios|ios-sim|tvos|catalyst|openssl|nghttp2|curl|vanilla|curlimp)" >&2; exit 1 ;;
+  *) echo "unknown target: $PLATFORM (all|macos|ios|ios-sim|tvos|catalyst|openssl|openssl-macos|nghttp2|curl|vanilla|curlimp)" >&2; exit 1 ;;
 esac
 
 echo ""
