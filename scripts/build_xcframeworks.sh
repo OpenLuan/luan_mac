@@ -563,7 +563,7 @@ build_vanilla() {
 # curl-impersonate -> libcurl-impersonate.xcframework
 # ===========================================================================
 
-CI_VERSION="${CI_VERSION:-v2.1.0}"
+CI_VERSION="${CI_VERSION:-v2.2.3}"
 
 build_curlimp() {
   echo "[curlimp] version=$CI_VERSION"
