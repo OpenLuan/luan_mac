@@ -176,8 +176,14 @@ build_openssl() {
   local HEADERS_DIR="$OUT_DIR/openssl-headers/include"
 
   build_macos() {
-    build_one macos-arm64 darwin64-arm64-cc
-    build_one macos-x86_64 darwin64-x86_64-cc
+    # Keep the static OpenSSL objects compatible with the app deployment
+    # target. Without this, newer Xcode SDKs may stamp objects with the
+    # host SDK version (for example macOS 26.0), causing linker warnings
+    # when LuanMac targets macOS 14.0.
+    MACOSX_DEPLOYMENT_TARGET=14.0 build_one macos-arm64 darwin64-arm64-cc \
+      CFLAGS="-mmacosx-version-min=14.0"
+    MACOSX_DEPLOYMENT_TARGET=14.0 build_one macos-x86_64 darwin64-x86_64-cc \
+      CFLAGS="-mmacosx-version-min=14.0"
     lipo -create -output "$WORK_OPENSSL/libcrypto-macos.a" \
       "$WORK_OPENSSL/macos-arm64/libcrypto.a" "$WORK_OPENSSL/macos-x86_64/libcrypto.a"
     lipo -create -output "$WORK_OPENSSL/libssl-macos.a" \
