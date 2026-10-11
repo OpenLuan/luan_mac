@@ -535,9 +535,7 @@ build_curl_vanilla() {
   echo "[curl] fat: $(lipo -info "$FAT")"
 
   # Stage headers (arm64 slice; headers are arch-independent) for the
-  # xcframework. Both the main luan CLI and the curl-impersonate-mcp
-  # subprocess target include curl/curl.h via HEADER_SEARCH_PATHS on this
-  # xcframework.
+  # legacy vanilla libcurl xcframework.
   local STAGE_HEADERS="$WORK_VANILLA/curl-Headers"
   rm -rf "$STAGE_HEADERS"
   mkdir -p "$STAGE_HEADERS/curl"
@@ -684,7 +682,7 @@ case "$PLATFORM" in
   ios|ios-sim|tvos|catalyst)
     # Non-macOS platforms only build openssl (vanilla + curlimp are macOS-only
     # artefacts: curlimp has prebuilt dylibs for macOS only, and vanilla curl
-    # here is targeted at the Mac luan CLI + curl-impersonate-mcp subprocess).
+    # here is targeted at the legacy Mac curl build).
     build_openssl "$PLATFORM"
     ;;
   *) echo "unknown target: $PLATFORM (all|macos|ios|ios-sim|tvos|catalyst|openssl|openssl-macos|nghttp2|curl|vanilla|curlimp)" >&2; exit 1 ;;

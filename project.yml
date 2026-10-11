@@ -45,8 +45,7 @@ settings:
     # The main binary links libcurl-impersonate in-process. The v2.2.3
     # release includes curl 8.22.0 and curl commit 961c95f, which frees the
     # DER buffer allocated by ossl_chain_get_der during Apple SecTrust
-    # verification. Keep the MCP subprocess target available as a rollback
-    # path, but the normal facade selects the real native backend.
+    # verification.
     OTHER_CFLAGS: >
       $(inherited)
       -DLUA_USE_MACOSX
@@ -220,21 +219,12 @@ targets:
         codeSignOnCopy: true
       - target: luan
         embed: false
-      # Retain the stdio MCP target as a quick rollback path.
-      - target: curl-impersonate-mcp
-        embed: false
     postBuildScripts:
       - name: Copy luan CLI and runtime resources
         script: |
           if [ -f "${BUILT_PRODUCTS_DIR}/luan" ]; then
             cp "${BUILT_PRODUCTS_DIR}/luan" "${BUILT_PRODUCTS_DIR}/${CONTENTS_FOLDER_PATH}/MacOS/luan"
             codesign --force --sign - "${BUILT_PRODUCTS_DIR}/${CONTENTS_FOLDER_PATH}/MacOS/luan"
-          fi
-          if [ -f "${BUILT_PRODUCTS_DIR}/curl-impersonate-mcp" ]; then
-            cp "${BUILT_PRODUCTS_DIR}/curl-impersonate-mcp" \
-               "${BUILT_PRODUCTS_DIR}/${CONTENTS_FOLDER_PATH}/MacOS/curl-impersonate-mcp"
-            codesign --force --sign - \
-               "${BUILT_PRODUCTS_DIR}/${CONTENTS_FOLDER_PATH}/MacOS/curl-impersonate-mcp"
           fi
           if [ -d "${SRCROOT}/runtime" ]; then
             rm -rf "${BUILT_PRODUCTS_DIR}/${CONTENTS_FOLDER_PATH}/Resources/runtime"
@@ -332,54 +322,6 @@ targets:
           @executable_path
           @executable_path/../Frameworks
 
-  curl-impersonate-mcp:
-    type: tool
-    platform: macOS
-    deploymentTarget: "14.0"
-    # Minimal stdio MCP server that wraps libcurl-impersonate. See
-    # curl-impersonate-mcp/README.md for the protocol and lifecycle.
-    # Builds into ${BUILT_PRODUCTS_DIR}/curl-impersonate-mcp and is copied
-    # into Contents/MacOS/ by the LuanMac post-build phase as a quick
-    # rollback subprocess. The normal facade uses the in-process backend.
-    #
-    # The target references the impersonate slice directly to keep the
-    # standalone tool independent from the app's framework embed phase.
-    sources:
-      - path: curl-impersonate-mcp
-        includes:
-          - "*.c"
-    settings:
-      base:
-        PRODUCT_NAME: curl-impersonate-mcp
-        # Strip the main runtime's global defines and prefix header; this
-        # target is plain C99 + libcurl-impersonate's curl.h.
-        OTHER_CFLAGS: >
-          -Wall
-          -Wextra
-          -std=c99
-        GCC_PREFIX_HEADER: ""
-        GCC_PRECOMPILE_PREFIX_HEADER: NO
-        CLANG_ENABLE_MODULES: NO
-        # Use the headers shipped with the impersonate xcframework.
-        HEADER_SEARCH_PATHS: >
-          $(SRCROOT)/Frameworks/libcurl-impersonate.xcframework/macos-arm64_x86_64/Headers
-        LIBRARY_SEARCH_PATHS: >
-          $(SRCROOT)/Frameworks/libcurl-impersonate.xcframework/macos-arm64_x86_64
-        OTHER_LDFLAGS: >
-          -lcurl-impersonate.4
-        CODE_SIGN_STYLE: Automatic
-        DEVELOPMENT_TEAM: ""
-        CODE_SIGNING_ALLOWED: YES
-        CODE_SIGNING_REQUIRED: NO
-        # Find the embedded dylib via @loader_path (= dir of the binary).
-        # In the installed bundle the binary sits in Contents/MacOS/ and
-        # libcurl-impersonate.4.dylib sits in Contents/Frameworks/ — reach
-        # it with ../Frameworks. For local ${BUILT_PRODUCTS_DIR} runs the
-        # dylib sits next to the binary, so @loader_path alone works.
-        LD_RUNPATH_SEARCH_PATHS: >
-          $(inherited)
-          @loader_path
-          @loader_path/../Frameworks
 
 schemes:
   LuanMac:
@@ -390,7 +332,3 @@ schemes:
     build:
       targets:
         luan: all
-  curl-impersonate-mcp:
-    build:
-      targets:
-        curl-impersonate-mcp: all

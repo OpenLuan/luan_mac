@@ -23,7 +23,6 @@
 		1997CBE2B0B96D426724532E /* transform.c in Sources */ = {isa = PBXBuildFile; fileRef = 029971476CF439143B926173 /* transform.c */; settings = {COMPILER_FLAGS = "-w"; }; };
 		1B238A67D81E67E16C1F335F /* metablock.c in Sources */ = {isa = PBXBuildFile; fileRef = 369C275A9D4B91A08F762B9F /* metablock.c */; settings = {COMPILER_FLAGS = "-w"; }; };
 		1BB06ECE65D0CFE95409AF90 /* xname.c in Sources */ = {isa = PBXBuildFile; fileRef = 64F2E9665E5CF6325BF4A5CC /* xname.c */; settings = {COMPILER_FLAGS = "-w"; }; };
-		1C896523079B05F0AE15A7EF /* json.c in Sources */ = {isa = PBXBuildFile; fileRef = 4F356A0AE6B580EB4E8D4495 /* json.c */; };
 		1C9A912F193B170C5A5E79C6 /* command.c in Sources */ = {isa = PBXBuildFile; fileRef = CBC7BE57FE0D30E47AF14766 /* command.c */; settings = {COMPILER_FLAGS = "-w"; }; };
 		1C9F5444B55019C0FBA40EEA /* config.ld in Resources */ = {isa = PBXBuildFile; fileRef = 13DC6918FD95E0C0EC4A1A23 /* config.ld */; };
 		1EA2CD293CDBD7DFD2675D63 /* callback.c in Sources */ = {isa = PBXBuildFile; fileRef = 5D2BC6739DA982C2829AFB63 /* callback.c */; settings = {COMPILER_FLAGS = "-w"; }; };
@@ -36,6 +35,7 @@
 		2C38D6DB7312F2823CE4B463 /* stream.c in Sources */ = {isa = PBXBuildFile; fileRef = 7F9BEB57D9D59A130BA4164F /* stream.c */; settings = {COMPILER_FLAGS = "-DFAN2_SOURCE=1 -Dluaopen_fan=luaopen_fan"; }; };
 		2E47290D8230EECFF18D37BD /* http.c in Sources */ = {isa = PBXBuildFile; fileRef = 19A94A8AE16F4A669DF080A9 /* http.c */; settings = {COMPILER_FLAGS = "-DFAN2_SOURCE=1 -Dluaopen_fan=luaopen_fan"; }; };
 		2E7AD77B55C7F8D64565EF79 /* digest.c in Sources */ = {isa = PBXBuildFile; fileRef = CFD275397E1694B3C406C5F9 /* digest.c */; settings = {COMPILER_FLAGS = "-w"; }; };
+		307B93D0CE1385E141D7F129 /* libcurl-impersonate.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = CA39BE4A587776FB488BEA74 /* libcurl-impersonate.xcframework */; };
 		30A670D03032BB938D932CAA /* icmp_sender.m in Sources */ = {isa = PBXBuildFile; fileRef = 031B0CAB5BB753B475EA800C /* icmp_sender.m */; };
 		3111B5FF25A326B65F9F51C2 /* lbase64.c in Sources */ = {isa = PBXBuildFile; fileRef = 452DD0790B6C919125B05D50 /* lbase64.c */; };
 		325256197D8BC2F441635B1E /* csr.c in Sources */ = {isa = PBXBuildFile; fileRef = CA432FC9A1EABF4BA2E49FB8 /* csr.c */; settings = {COMPILER_FLAGS = "-w"; }; };
@@ -153,7 +153,6 @@
 		BA7B9DC7B5BA4C6F87B8ECDC /* engine.c in Sources */ = {isa = PBXBuildFile; fileRef = E63E4268C2F3C30549F3B7C3 /* engine.c */; settings = {COMPILER_FLAGS = "-w"; }; };
 		BAE608B764E973A2502F3024 /* zlib_wrap.c in Sources */ = {isa = PBXBuildFile; fileRef = 4D6B155C4A106C86DBE39E0A /* zlib_wrap.c */; settings = {COMPILER_FLAGS = "-DFAN2_SOURCE=1 -Dluaopen_fan=luaopen_fan"; }; };
 		BF3B057FA9422C09654F1607 /* libcurl-impersonate.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = CA39BE4A587776FB488BEA74 /* libcurl-impersonate.xcframework */; };
-		C2513472F6EFB4BFE2F79CC6 /* base64.c in Sources */ = {isa = PBXBuildFile; fileRef = 11141EEFDF9BF89E315F6322 /* base64.c */; };
 		C43D3F739D62BA9B7BA59AE1 /* evthread_pthread.c in Sources */ = {isa = PBXBuildFile; fileRef = 5FC6098834103AFFEB45BF07 /* evthread_pthread.c */; settings = {COMPILER_FLAGS = "-w"; }; };
 		C6BD876247D0F476331B910F /* time64.c in Sources */ = {isa = PBXBuildFile; fileRef = 38744475E2556EEBF17AE105 /* time64.c */; };
 		C78F318732EFFC05325B74B0 /* gcm.c in Sources */ = {isa = PBXBuildFile; fileRef = A4139945E8F162811FA253C0 /* gcm.c */; settings = {COMPILER_FLAGS = "-DFAN2_SOURCE=1 -Dluaopen_fan=luaopen_fan"; }; };
@@ -210,7 +209,6 @@
 		F361B811B276550925C5C728 /* libcrypto.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 853B8EE04597A010CB5216A7 /* libcrypto.xcframework */; };
 		F948E03954CBC5803098B157 /* evthread.c in Sources */ = {isa = PBXBuildFile; fileRef = 589E1F5E3F42D121CD4C4FB0 /* evthread.c */; settings = {COMPILER_FLAGS = "-w"; }; };
 		F972F00D09DB3F680CD09995 /* shared_dictionary.c in Sources */ = {isa = PBXBuildFile; fileRef = EA082F911E4B57914016DF02 /* shared_dictionary.c */; settings = {COMPILER_FLAGS = "-w"; }; };
-		F9F606A493E94A4BE15902DF /* main.c in Sources */ = {isa = PBXBuildFile; fileRef = 7C52394268A7B3BDAD61A5D0 /* main.c */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -220,13 +218,6 @@
 			proxyType = 1;
 			remoteGlobalIDString = 99DED5CCEDECF2698F49BF41;
 			remoteInfo = luan;
-		};
-		F5D2938536157DF7D35EB78C /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 85D1D7B5CE7303964DFD4EF7 /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 4C986EBC63A6348056F39A8C;
-			remoteInfo = "curl-impersonate-mcp";
 		};
 /* End PBXContainerItemProxy section */
 
@@ -276,7 +267,6 @@
 		0F1BBDEC79107AB35FA7FFB2 /* zh-Hans */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "zh-Hans"; path = "zh-Hans.lproj/Localizable.strings"; sourceTree = "<group>"; };
 		0FDC10B83BEF357AEAA97A1E /* pal_lua_bridge.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = pal_lua_bridge.c; sourceTree = "<group>"; };
 		10CD202531C2AB19D589161B /* epoll.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = epoll.c; sourceTree = "<group>"; };
-		11141EEFDF9BF89E315F6322 /* base64.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = base64.c; sourceTree = "<group>"; };
 		116CDF9E2BE0095598876F45 /* luaiconv.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = luaiconv.c; sourceTree = "<group>"; };
 		11EA6ABA21110096F5D01D59 /* luauser.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = luauser.h; sourceTree = "<group>"; };
 		12ABFBFB6AF0374D34AA3656 /* huffman.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = huffman.c; sourceTree = "<group>"; };
@@ -368,7 +358,6 @@
 		4DBE87D7CB7943A20BF50308 /* runtime */ = {isa = PBXFileReference; lastKnownFileType = folder; path = runtime; sourceTree = SOURCE_ROOT; };
 		4E3E9AFEA731B0B14BE59793 /* sqlite3ext.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = sqlite3ext.h; sourceTree = "<group>"; };
 		4E5407A9B543504885BA7762 /* libssl.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = libssl.xcframework; path = Frameworks/libssl.xcframework; sourceTree = "<group>"; };
-		4F356A0AE6B580EB4E8D4495 /* json.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = json.c; sourceTree = "<group>"; };
 		4F5A2FAD38F8E35AE42E20BA /* config.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = config.h; sourceTree = "<group>"; };
 		4F6946263C73C6DDA5606EA7 /* brotli_bit_stream.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = brotli_bit_stream.c; sourceTree = "<group>"; };
 		4FB88B57180C665FA47F976A /* evrpc-internal.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "evrpc-internal.h"; sourceTree = "<group>"; };
@@ -434,7 +423,6 @@
 		7B797994CC2199BE8C749A78 /* ldebug.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = ldebug.c; sourceTree = "<group>"; };
 		7BF47B7890A034FFCF0C8673 /* dns.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = dns.c; sourceTree = "<group>"; };
 		7BFF4FA88A9811C0F8FA5E59 /* cluster_inc.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = cluster_inc.h; sourceTree = "<group>"; };
-		7C52394268A7B3BDAD61A5D0 /* main.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = main.c; sourceTree = "<group>"; };
 		7C54C8868F13A26F68F29AF2 /* hmac.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = hmac.c; sourceTree = "<group>"; };
 		7F9BEB57D9D59A130BA4164F /* stream.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = stream.c; sourceTree = "<group>"; };
 		812D411CE46D14978AD764D8 /* tcp.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = tcp.h; sourceTree = "<group>"; };
@@ -568,7 +556,6 @@
 		E1E69B8D0ACDCE363471FF5E /* .gitignore */ = {isa = PBXFileReference; path = .gitignore; sourceTree = "<group>"; };
 		E1E7F1D367A9973805D52B8F /* ltablib.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = ltablib.c; sourceTree = "<group>"; };
 		E282D7AEAAF496138316FB89 /* ltime64.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = ltime64.c; sourceTree = "<group>"; };
-		E2C04CB06EFDA72498385F1F /* curl-impersonate-mcp */ = {isa = PBXFileReference; includeInIndex = 0; path = "curl-impersonate-mcp"; sourceTree = BUILT_PRODUCTS_DIR; };
 		E33ED462BDAE61A4D120E9D7 /* cluster.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = cluster.h; sourceTree = "<group>"; };
 		E46C18749DF0C10A33E7B809 /* version.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = version.h; sourceTree = "<group>"; };
 		E627A4E2A73ECB690273E3F4 /* kqueue-internal.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "kqueue-internal.h"; sourceTree = "<group>"; };
@@ -639,7 +626,7 @@
 				7097CC08DD73587D898098E4 /* SystemConfiguration.framework in Frameworks */,
 				44DA138E8AF1988C8578538D /* libssl.xcframework in Frameworks */,
 				F361B811B276550925C5C728 /* libcrypto.xcframework in Frameworks */,
-				BF3B057FA9422C09654F1607 /* libcurl-impersonate.xcframework in Frameworks */,
+				307B93D0CE1385E141D7F129 /* libcurl-impersonate.xcframework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -755,7 +742,6 @@
 			isa = PBXGroup;
 			children = (
 				4DBE87D7CB7943A20BF50308 /* runtime */,
-				65A3E936B2290CDD72BCA3CE /* curl-impersonate-mcp */,
 				DF0381FA04D62A8D067507B7 /* lua-apple */,
 				E208190298F09D4353F6CE72 /* luan */,
 				E97834A14A9FEA1153015BC4 /* LuanCLI */,
@@ -917,16 +903,6 @@
 			path = util;
 			sourceTree = "<group>";
 		};
-		65A3E936B2290CDD72BCA3CE /* curl-impersonate-mcp */ = {
-			isa = PBXGroup;
-			children = (
-				11141EEFDF9BF89E315F6322 /* base64.c */,
-				4F356A0AE6B580EB4E8D4495 /* json.c */,
-				7C52394268A7B3BDAD61A5D0 /* main.c */,
-			);
-			path = "curl-impersonate-mcp";
-			sourceTree = "<group>";
-		};
 		698D93789F3B6C9406B96483 /* enc */ = {
 			isa = PBXGroup;
 			children = (
@@ -1025,7 +1001,6 @@
 		7DEE3902F5C9CE92B553FE73 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				E2C04CB06EFDA72498385F1F /* curl-impersonate-mcp */,
 				D393B43F3DF76902DFC8E36F /* luan */,
 				46B1EDB5B3ECD8A5BFFF6FCD /* LuanMac.app */,
 			);
@@ -1356,23 +1331,6 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		4C986EBC63A6348056F39A8C /* curl-impersonate-mcp */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = 4D1E1C9EC357D4BDD4AFA912 /* Build configuration list for PBXNativeTarget "curl-impersonate-mcp" */;
-			buildPhases = (
-				DDB519C488C3A9B4A0DFA9F2 /* Sources */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-			);
-			name = "curl-impersonate-mcp";
-			packageProductDependencies = (
-			);
-			productName = "curl-impersonate-mcp";
-			productReference = E2C04CB06EFDA72498385F1F /* curl-impersonate-mcp */;
-			productType = "com.apple.product-type.tool";
-		};
 		99DED5CCEDECF2698F49BF41 /* luan */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = D457D59EA4E24A9CF21181D7 /* Build configuration list for PBXNativeTarget "luan" */;
@@ -1406,7 +1364,6 @@
 			);
 			dependencies = (
 				02B8B74DB330E7153380C2F2 /* PBXTargetDependency */,
-				3CE787159A629D6ABAE82190 /* PBXTargetDependency */,
 			);
 			name = LuanMac;
 			packageProductDependencies = (
@@ -1424,10 +1381,6 @@
 				BuildIndependentTargetsInParallel = YES;
 				LastUpgradeCheck = 1430;
 				TargetAttributes = {
-					4C986EBC63A6348056F39A8C = {
-						DevelopmentTeam = "";
-						ProvisioningStyle = Automatic;
-					};
 					99DED5CCEDECF2698F49BF41 = {
 						DevelopmentTeam = "";
 						ProvisioningStyle = Automatic;
@@ -1454,7 +1407,6 @@
 			projectRoot = "";
 			targets = (
 				F8E59E6ED4025E27C70174D4 /* LuanMac */,
-				4C986EBC63A6348056F39A8C /* curl-impersonate-mcp */,
 				99DED5CCEDECF2698F49BF41 /* luan */,
 			);
 		};
@@ -1499,7 +1451,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "if [ -f \"${BUILT_PRODUCTS_DIR}/luan\" ]; then\n  cp \"${BUILT_PRODUCTS_DIR}/luan\" \"${BUILT_PRODUCTS_DIR}/${CONTENTS_FOLDER_PATH}/MacOS/luan\"\n  codesign --force --sign - \"${BUILT_PRODUCTS_DIR}/${CONTENTS_FOLDER_PATH}/MacOS/luan\"\nfi\nif [ -f \"${BUILT_PRODUCTS_DIR}/curl-impersonate-mcp\" ]; then\n  cp \"${BUILT_PRODUCTS_DIR}/curl-impersonate-mcp\" \\\n     \"${BUILT_PRODUCTS_DIR}/${CONTENTS_FOLDER_PATH}/MacOS/curl-impersonate-mcp\"\n  codesign --force --sign - \\\n     \"${BUILT_PRODUCTS_DIR}/${CONTENTS_FOLDER_PATH}/MacOS/curl-impersonate-mcp\"\nfi\nif [ -d \"${SRCROOT}/runtime\" ]; then\n  rm -rf \"${BUILT_PRODUCTS_DIR}/${CONTENTS_FOLDER_PATH}/Resources/runtime\"\n  mkdir -p \"${BUILT_PRODUCTS_DIR}/${CONTENTS_FOLDER_PATH}/Resources\"\n  cp -R \"${SRCROOT}/runtime\" \"${BUILT_PRODUCTS_DIR}/${CONTENTS_FOLDER_PATH}/Resources/runtime\"\nfi\n";
+			shellScript = "if [ -f \"${BUILT_PRODUCTS_DIR}/luan\" ]; then\n  cp \"${BUILT_PRODUCTS_DIR}/luan\" \"${BUILT_PRODUCTS_DIR}/${CONTENTS_FOLDER_PATH}/MacOS/luan\"\n  codesign --force --sign - \"${BUILT_PRODUCTS_DIR}/${CONTENTS_FOLDER_PATH}/MacOS/luan\"\nfi\nif [ -d \"${SRCROOT}/runtime\" ]; then\n  rm -rf \"${BUILT_PRODUCTS_DIR}/${CONTENTS_FOLDER_PATH}/Resources/runtime\"\n  mkdir -p \"${BUILT_PRODUCTS_DIR}/${CONTENTS_FOLDER_PATH}/Resources\"\n  cp -R \"${SRCROOT}/runtime\" \"${BUILT_PRODUCTS_DIR}/${CONTENTS_FOLDER_PATH}/Resources/runtime\"\nfi\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -1699,16 +1651,6 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		DDB519C488C3A9B4A0DFA9F2 /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				C2513472F6EFB4BFE2F79CC6 /* base64.c in Sources */,
-				1C896523079B05F0AE15A7EF /* json.c in Sources */,
-				F9F606A493E94A4BE15902DF /* main.c in Sources */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -1716,11 +1658,6 @@
 			isa = PBXTargetDependency;
 			target = 99DED5CCEDECF2698F49BF41 /* luan */;
 			targetProxy = 33FAF2F676B33A07FE662AE6 /* PBXContainerItemProxy */;
-		};
-		3CE787159A629D6ABAE82190 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = 4C986EBC63A6348056F39A8C /* curl-impersonate-mcp */;
-			targetProxy = F5D2938536157DF7D35EB78C /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -1919,52 +1856,6 @@
 			};
 			name = Release;
 		};
-		9C6B67F390952BBD2488511A /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CLANG_ENABLE_MODULES = NO;
-				CODE_SIGNING_ALLOWED = YES;
-				CODE_SIGNING_REQUIRED = NO;
-				CODE_SIGN_STYLE = Automatic;
-				COMBINE_HIDPI_IMAGES = YES;
-				DEVELOPMENT_TEAM = "";
-				GCC_PRECOMPILE_PREFIX_HEADER = NO;
-				GCC_PREFIX_HEADER = "";
-				HEADER_SEARCH_PATHS = "$(SRCROOT)/Frameworks/libcurl-impersonate.xcframework/macos-arm64_x86_64/Headers\n";
-				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @loader_path @loader_path/../Frameworks\n";
-				LIBRARY_SEARCH_PATHS = "$(SRCROOT)/Frameworks/libcurl-impersonate.xcframework/macos-arm64_x86_64\n";
-				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				OTHER_CFLAGS = "-Wall -Wextra -std=c99\n";
-				OTHER_LDFLAGS = "-lcurl-impersonate.4\n";
-				PRODUCT_BUNDLE_IDENTIFIER = "com.luanmac.curl-impersonate-mcp";
-				PRODUCT_NAME = "curl-impersonate-mcp";
-				SDKROOT = macosx;
-			};
-			name = Debug;
-		};
-		9EC12657E170EB7A74857B42 /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CLANG_ENABLE_MODULES = NO;
-				CODE_SIGNING_ALLOWED = YES;
-				CODE_SIGNING_REQUIRED = NO;
-				CODE_SIGN_STYLE = Automatic;
-				COMBINE_HIDPI_IMAGES = YES;
-				DEVELOPMENT_TEAM = "";
-				GCC_PRECOMPILE_PREFIX_HEADER = NO;
-				GCC_PREFIX_HEADER = "";
-				HEADER_SEARCH_PATHS = "$(SRCROOT)/Frameworks/libcurl-impersonate.xcframework/macos-arm64_x86_64/Headers\n";
-				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @loader_path @loader_path/../Frameworks\n";
-				LIBRARY_SEARCH_PATHS = "$(SRCROOT)/Frameworks/libcurl-impersonate.xcframework/macos-arm64_x86_64\n";
-				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				OTHER_CFLAGS = "-Wall -Wextra -std=c99\n";
-				OTHER_LDFLAGS = "-lcurl-impersonate.4\n";
-				PRODUCT_BUNDLE_IDENTIFIER = "com.luanmac.curl-impersonate-mcp";
-				PRODUCT_NAME = "curl-impersonate-mcp";
-				SDKROOT = macosx;
-			};
-			name = Release;
-		};
 		BB27C14608E8283F5B653B3E /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -2020,15 +1911,6 @@
 			buildConfigurations = (
 				514D8C86300F03915D2A9A9C /* Debug */,
 				6BDC620838B20E137328C0CC /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Debug;
-		};
-		4D1E1C9EC357D4BDD4AFA912 /* Build configuration list for PBXNativeTarget "curl-impersonate-mcp" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				9C6B67F390952BBD2488511A /* Debug */,
-				9EC12657E170EB7A74857B42 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;
