@@ -42,15 +42,11 @@ settings:
       # are intentionally created WITHOUT headers: both targets link them and
       # would race on $(BUILT_PRODUCTS_DIR)/include/openssl/* otherwise.
       $(SRCROOT)/Frameworks/openssl-headers/include
-    # Main binary links against stock libcurl (OpenSSL backend). Browser TLS
-    # fingerprinting (curl-impersonate) is deliberately NOT compiled into the
-    # main process — it is delivered as a separate stdio MCP subprocess so
-    # the Apple-side CBB_add_space / ossl_chain_get_der leak observed in
-    # Curl_vtls_apple_verify cannot accumulate in the long-lived luan
-    # process. The Lua binding (luan/curl-impersonate/luacurlimp.c) still
-    # exposes a curlimp interface and resolves curl_easy_impersonate to a
-    # no-op stub via LUAFAN_CURLIMP_MOCK; fingerprinted requests are
-    # expected to be routed to the external MCP server.
+    # The main binary links libcurl-impersonate in-process. The v2.2.3
+    # release includes curl 8.22.0 and curl commit 961c95f, which frees the
+    # DER buffer allocated by ossl_chain_get_der during Apple SecTrust
+    # verification. Keep the MCP subprocess target available as a rollback
+    # path, but the normal facade selects the real native backend.
     OTHER_CFLAGS: >
       $(inherited)
       -DLUA_USE_MACOSX
@@ -72,7 +68,6 @@ settings:
       -DSQLITE_DEFAULT_LOCKING_MODE=1
       -DTUNNEL_IN_MAIN_TARGET
       -DPAL_NO_TUNNEL
-      -DLUAFAN_CURLIMP_MOCK=1
 
 # Exclude noise / non-macOS sources under lua-apple when scanning the tree.
 # sqlite3.c / openssl / lua53 / libevent are re-added as explicit source entries
@@ -214,16 +209,7 @@ targets:
       - sdk: libz.tbd
       - sdk: libiconv.tbd
       - sdk: SystemConfiguration.framework
-      # Stock libcurl (OpenSSL backend). Browser TLS fingerprinting is
-      # split out into a separate stdio MCP subprocess — see the top-level
-      # OTHER_CFLAGS comment for the rationale. Link order matters:
-      # libcurl.a has undefined OpenSSL / OCSP / X509 / EVP / BIO symbols
-      # that must be resolved from libssl + libcrypto, and HTTP/2 symbols
-      # (nghttp2_*) must come from libnghttp2. Keep order libcurl → libssl
-      # → libcrypto → libnghttp2. All four are static .a inside
-      # xcframeworks; no embed step is needed.
-      # SystemConfiguration provides SCDynamicStoreCopyProxies used by
-      # Curl_macos_init for proxy auto-detection.
+      # Vanilla HTTP stack for non-fingerprinted requests.
       - framework: Frameworks/libcurl.xcframework
         embed: false
       - framework: Frameworks/libssl.xcframework
@@ -232,17 +218,13 @@ targets:
         embed: false
       - framework: Frameworks/libnghttp2.xcframework
         embed: false
-      # The main binary does NOT link libcurl-impersonate (see top-level
-      # comment). It is embedded here so the curl-impersonate-mcp
-      # subprocess can dlopen it via @executable_path/../Frameworks when
-      # running out of the installed app bundle.
+      # In-process browser fingerprinting backend (v2.2.3).
       - framework: Frameworks/libcurl-impersonate.xcframework
         embed: true
         codeSignOnCopy: true
       - target: luan
         embed: false
-      # Pulls the stdio MCP server into the LuanMac build graph; the
-      # resulting binary is copied into Contents/MacOS/ below.
+      # Retain the stdio MCP target as a quick rollback path.
       - target: curl-impersonate-mcp
         embed: false
     postBuildScripts:
@@ -331,12 +313,7 @@ targets:
       - sdk: libiconv.tbd
       - sdk: libsqlite3.tbd
       - sdk: SystemConfiguration.framework
-      # Stock libcurl (OpenSSL backend); see LuanMac target above and the
-      # top-level OTHER_CFLAGS comment for the full rationale (fingerprinting
-      # lives in a separate stdio MCP subprocess, not in-process).
-      # Static .a; link order libcurl → libssl → libcrypto → libnghttp2
-      # resolves BIO/SSL/X509/EVP/OCSP + HTTP/2 (nghttp2_*) symbols in
-      # libcurl.a.
+      # Vanilla HTTP stack plus the in-process browser fingerprinting backend.
       - framework: Frameworks/libcurl.xcframework
         embed: false
       - framework: Frameworks/libssl.xcframework
@@ -345,11 +322,10 @@ targets:
         embed: false
       - framework: Frameworks/libnghttp2.xcframework
         embed: false
-    # Stock libcurl is a static .a inside libcurl.xcframework, so the previous
-    # "Multiple commands produce libcurl-impersonate.4.dylib" hazard is gone:
-    # nothing is embedded, and the luan standalone binary at
-    # ${BUILT_PRODUCTS_DIR}/luan can be launched directly. The LD_RUNPATH
-    # entries below are kept as-is for forward compatibility.
+      - framework: Frameworks/libcurl-impersonate.xcframework
+        embed: false
+    # The standalone luan binary uses the embedded impersonate dylib through
+    # the same @rpath layout as the app bundle.
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.luanmac.luan
