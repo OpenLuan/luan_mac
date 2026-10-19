@@ -11,7 +11,7 @@ final class AppSettings: ObservableObject {
     @Published var sandboxUnrestricted: Bool = false
     @Published var sslSkipVerify: Bool = false
     @Published var nativeChromeMCPEnabled: Bool = false
-    @Published var nativeChromeMCPPort: Int = 9223
+    @Published var nativeChromeMCPPort: Int = 9323
     /// Kill the app-managed Chrome when the app quits (default true).
     @Published var terminateChromeOnQuit: Bool = true
 
@@ -55,7 +55,7 @@ final class AppSettings: ObservableObject {
             host = "127.0.0.1"; port = 8080
             sqliteSoftHeapMB = 8
             debug = false; sandboxUnrestricted = false; sslSkipVerify = false
-            nativeChromeMCPEnabled = false; nativeChromeMCPPort = 9223
+            nativeChromeMCPEnabled = false; nativeChromeMCPPort = 9323
             terminateChromeOnQuit = true
             jwtSecret = ""; activationKey = ""
             return
@@ -67,7 +67,8 @@ final class AppSettings: ObservableObject {
         sandboxUnrestricted = snap.sandboxUnrestricted
         sslSkipVerify = snap.sslSkipVerify ?? false
         nativeChromeMCPEnabled = snap.nativeChromeMCPEnabled ?? false
-        nativeChromeMCPPort = snap.nativeChromeMCPPort ?? 9223
+        let configuredNativePort = snap.nativeChromeMCPPort ?? 9323
+        nativeChromeMCPPort = configuredNativePort == 9223 ? 9323 : configuredNativePort
         terminateChromeOnQuit = snap.terminateChromeOnQuit ?? true
         jwtSecret = snap.jwtSecret
         activationKey = snap.activationKey

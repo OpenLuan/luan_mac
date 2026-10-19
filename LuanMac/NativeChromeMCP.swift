@@ -14,7 +14,7 @@ import Combine
 /// the same app-managed Chrome session.
 @MainActor
 final class NativeChromeMCP: ObservableObject {
-    static let defaultPort = 9223
+    static let defaultPort = 9323
     static let chromeDebugPort = 9222
 
     @Published private(set) var isRunning = false

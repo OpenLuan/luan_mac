@@ -464,7 +464,7 @@ struct SettingsSheet: View {
                     Text(L("native.settings.chromeMCP.port"))
                         .frame(width: 80, alignment: .leading)
                         .foregroundStyle(.secondary)
-                    TextField("9223", value: $settings.nativeChromeMCPPort, format: .number.grouping(.never))
+                    TextField("9323", value: $settings.nativeChromeMCPPort, format: .number.grouping(.never))
                         .textFieldStyle(.roundedBorder)
                         .frame(width: 80)
                         .disabled(!canEdit || !settings.nativeChromeMCPEnabled)
