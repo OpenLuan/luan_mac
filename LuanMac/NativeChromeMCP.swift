@@ -447,8 +447,8 @@ final class NativeChromeMCP: ObservableObject {
     /// a session id only exists on the connection that created it. Keeping one
     /// long-lived browser connection lets `set_proxy` / `query_proxy` do
     /// attach -> evaluate with the same sessionId across tool calls. Commands
-    /// are serialized by the actor; a command timeout keeps the connection
-    /// (session ids must survive), a transport error drops it for reconnect.
+    /// are serialized by the actor; a command timeout drops the connection
+    /// because a cancelled receive may consume a later command's reply.
     private actor BrowserWSPool {
         private var task: URLSessionWebSocketTask?
         private var wsURL = ""
@@ -494,7 +494,13 @@ final class NativeChromeMCP: ObservableObject {
                         try await task.receive()
                     }
                 } catch is NativeChromeMCP.ChromeError {
-                    // command timeout — keep the connection (sessions survive)
+                    // A timed-out receive may still be pending underneath the
+                    // task-group cancellation. Do not reuse this WebSocket:
+                    // a later receive could consume the old command's reply.
+                    print("[NativeChromeMCP] BrowserWSPool command timeout, dropping connection")
+                    task.cancel(with: .goingAway, reason: nil)
+                    self.task = nil
+                    self.wsURL = ""
                     throw NativeChromeMCP.ChromeError.timeout
                 } catch {
                     // transport error — drop the connection so the next call reconnects
