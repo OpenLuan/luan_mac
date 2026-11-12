@@ -84,6 +84,9 @@ static int Lupdate(lua_State *L)		/** update(c,s,...) */
 static int Ldigest(lua_State *L)		/** digest(c or s,[raw]) */
 {
  unsigned char digest[N];
+ /* raw is an optional boolean, not a format string or a truthy value. */
+ if (!lua_isnoneornil(L,2) && !lua_isboolean(L,2))
+  return luaL_argerror(L,2,"boolean or nil expected");
  if (lua_isuserdata(L,1))
  {
   MD5_CTX c=*Pget(L,1);
